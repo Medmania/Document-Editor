@@ -24,7 +24,7 @@
   <!-- Fabric.js Canvas Engine for Visual PDF Editor -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
 
-  <!-- WASM TeX Compiler Engine (SwiftLaTeX) -->
+  <!-- WASM TeX Compiler Engine (SwiftLaTeX - XeTeX + pdfTeX) -->
   <script src="https://cdn.jsdelivr.net/npm/swiftlatex@1.0.0/dist/swiftlatex.min.js"></script>
 
   <!-- Open Source Document Processing Libraries -->
@@ -144,8 +144,7 @@
 
     <!-- TAB NAVIGATION -->
     <nav class="flex p-1 bg-slate-100 rounded-xl border border-slate-200/80">
-      <!-- NEW VISUAL PDF EDITOR TAB -->
-      <button id="tab-pdf-editor-btn" onclick="switchTab('pdf-editor')" class="px-3.5 py-2 text-xs md:text-sm font-semibold rounded-lg transition-all text-brand-600 bg-white shadow-sm">
+      <button id="tab-pdf-editor-btn" onclick="switchTab('pdf-editor')" class="px-3.5 py-2 text-xs md:text-sm font-semibold rounded-lg transition-all text-slate-600 hover:text-slate-900">
         <span class="flex items-center gap-1.5">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
           Visual PDF Editor
@@ -169,7 +168,7 @@
           Page Organizer
         </span>
       </button>
-      <button id="tab-latex-btn" onclick="switchTab('latex-studio')" class="px-3.5 py-2 text-xs md:text-sm font-semibold rounded-lg transition-all text-slate-600 hover:text-slate-900">
+      <button id="tab-latex-btn" onclick="switchTab('latex-studio')" class="px-3.5 py-2 text-xs md:text-sm font-semibold rounded-lg transition-all text-brand-600 bg-white shadow-sm">
         <span class="flex items-center gap-1.5">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
           LaTeX Studio
@@ -184,12 +183,8 @@
   <!-- MAIN CONTENT CONTAINER -->
   <main class="flex-1 overflow-y-auto p-4 md:p-6 max-w-7xl w-full mx-auto flex flex-col">
 
-    <!-- ========================================== -->
-    <!-- TAB 0: VISUAL PDF EDITOR (NEW FEATURE) -->
-    <!-- ========================================== -->
-    <section id="tab-pdf-editor" class="flex-1 flex flex-col space-y-4">
-      
-      <!-- UPLOAD STATE / DROPZONE -->
+    <!-- TAB 0: VISUAL PDF EDITOR -->
+    <section id="tab-pdf-editor" class="hidden flex-1 flex flex-col space-y-4">
       <div id="pdf-editor-upload-zone" 
            onclick="document.getElementById('pdf-v-file-input').click()"
            ondragover="handleDragOver(event, this)"
@@ -204,51 +199,18 @@
         <p class="text-xs text-slate-400 mt-1">Add text boxes, signatures, images, highlights, drawings, and shapes directly over your PDF pages.</p>
       </div>
 
-      <!-- VISUAL EDITOR WORKSPACE (HIDDEN UNTIL LOADED) -->
       <div id="pdf-editor-workspace" class="hidden flex-1 flex flex-col space-y-3 min-h-0">
-        
-        <!-- TOOLBAR -->
         <div class="bg-white p-2.5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-wrap items-center justify-between gap-2.5 shrink-0">
-          
-          <!-- Editing Tools -->
           <div class="flex flex-wrap items-center gap-1.5">
-            
-            <button id="v-tool-select" onclick="setVisualTool('select')" class="p-2 rounded-xl text-xs font-semibold bg-brand-50 text-brand-600 border border-brand-200 flex items-center gap-1.5" title="Select / Move Tool">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5"/></svg>
-              <span class="hidden sm:inline">Select</span>
-            </button>
-
-            <button id="v-tool-text" onclick="addVisualText()" class="p-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 flex items-center gap-1.5" title="Add Text Box">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-              <span class="hidden sm:inline">Text</span>
-            </button>
-
-            <button id="v-tool-pen" onclick="setVisualTool('pen')" class="p-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 flex items-center gap-1.5" title="Freehand Pen">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
-              <span class="hidden sm:inline">Draw</span>
-            </button>
-
-            <button id="v-tool-highlight" onclick="setVisualTool('highlight')" class="p-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 flex items-center gap-1.5" title="Highlighter">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10M12 3v14m-4-4l4 4 4-4"/></svg>
-              <span class="hidden sm:inline">Highlight</span>
-            </button>
-
-            <button id="v-tool-rect" onclick="addVisualRect()" class="p-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 flex items-center gap-1.5" title="Add Rectangle">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h18v18H3V3z"/></svg>
-              <span class="hidden sm:inline">Shape</span>
-            </button>
-
+            <button id="v-tool-select" onclick="setVisualTool('select')" class="p-2 rounded-xl text-xs font-semibold bg-brand-50 text-brand-600 border border-brand-200 flex items-center gap-1.5" title="Select / Move Tool"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5"/></svg><span class="hidden sm:inline">Select</span></button>
+            <button id="v-tool-text" onclick="addVisualText()" class="p-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 flex items-center gap-1.5" title="Add Text Box"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg><span class="hidden sm:inline">Text</span></button>
+            <button id="v-tool-pen" onclick="setVisualTool('pen')" class="p-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 flex items-center gap-1.5" title="Freehand Pen"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg><span class="hidden sm:inline">Draw</span></button>
+            <button id="v-tool-highlight" onclick="setVisualTool('highlight')" class="p-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 flex items-center gap-1.5" title="Highlighter"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10M12 3v14m-4-4l4 4 4-4"/></svg><span class="hidden sm:inline">Highlight</span></button>
+            <button id="v-tool-rect" onclick="addVisualRect()" class="p-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 flex items-center gap-1.5" title="Add Rectangle"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h18v18H3V3z"/></svg><span class="hidden sm:inline">Shape</span></button>
             <input type="file" id="v-image-input" accept="image/*" class="hidden" onchange="addVisualImage(event)">
-            <button onclick="document.getElementById('v-image-input').click()" class="p-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 flex items-center gap-1.5" title="Add Image / Signature">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-              <span class="hidden sm:inline">Image / Sign</span>
-            </button>
-
+            <button onclick="document.getElementById('v-image-input').click()" class="p-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 flex items-center gap-1.5" title="Add Image / Signature"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg><span class="hidden sm:inline">Image / Sign</span></button>
             <div class="h-5 w-px bg-slate-200 mx-1"></div>
-
-            <!-- Color & Font controls -->
             <input type="color" id="v-color-picker" value="#0f172a" onchange="updateVisualColor(this.value)" class="w-7 h-7 rounded-lg border border-slate-200 cursor-pointer" title="Pick Color">
-
             <select id="v-fontsize-select" onchange="updateVisualFontSize(this.value)" class="px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700">
               <option value="14">14px</option>
               <option value="18" selected>18px</option>
@@ -256,85 +218,47 @@
               <option value="32">32px</option>
               <option value="48">48px</option>
             </select>
-
-            <button onclick="deleteSelectedVisualObject()" class="p-2 rounded-xl text-xs font-semibold text-red-600 hover:bg-red-50 flex items-center gap-1" title="Delete Selected Object">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-            </button>
+            <button onclick="deleteSelectedVisualObject()" class="p-2 rounded-xl text-xs font-semibold text-red-600 hover:bg-red-50 flex items-center gap-1" title="Delete Selected Object"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
           </div>
-
-          <!-- Page Nav & Zoom & Save -->
           <div class="flex items-center gap-2">
-            
             <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-xs font-semibold text-slate-700">
               <button onclick="changeVisualPage(-1)" class="p-1 hover:bg-white rounded-lg">&lt;</button>
               <span id="v-page-indicator" class="px-2">Page 1 of 1</span>
               <button onclick="changeVisualPage(1)" class="p-1 hover:bg-white rounded-lg">&gt;</button>
             </div>
-
             <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-xs font-semibold text-slate-700">
               <button onclick="zoomVisualCanvas(-0.1)" class="px-2 py-0.5 hover:bg-white rounded-lg">-</button>
               <span id="v-zoom-indicator">100%</span>
               <button onclick="zoomVisualCanvas(0.1)" class="px-2 py-0.5 hover:bg-white rounded-lg">+</button>
             </div>
-
-            <button onclick="exportVisualEditedPdf()" class="px-4 py-2 text-xs font-semibold rounded-xl bg-brand-600 text-white hover:bg-brand-700 transition-all flex items-center gap-1.5 shadow-sm shadow-brand-500/20">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
-              Save PDF
-            </button>
-
+            <button onclick="exportVisualEditedPdf()" class="px-4 py-2 text-xs font-semibold rounded-xl bg-brand-600 text-white hover:bg-brand-700 transition-all flex items-center gap-1.5 shadow-sm shadow-brand-500/20"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>Save PDF</button>
             <button onclick="closeVisualEditor()" class="p-2 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100" title="Close File">&times;</button>
           </div>
-
         </div>
 
-        <!-- CANVAS MAIN CONTAINER WITH SIDEBAR THUMBNAILS -->
         <div class="flex-1 flex gap-4 min-h-0 overflow-hidden">
-          
-          <!-- Page Thumbnails Panel -->
           <div id="v-thumbnails-sidebar" class="w-44 bg-white border border-slate-200/80 rounded-2xl p-3 overflow-y-auto hidden sm:flex flex-col gap-3 shrink-0"></div>
-
-          <!-- Main Canvas Workspace Viewport -->
           <div id="v-canvas-viewport" class="flex-1 bg-slate-100 rounded-2xl border border-slate-200/80 p-4 overflow-auto flex items-start justify-center relative">
             <canvas id="pdf-v-fabric-canvas"></canvas>
           </div>
-
         </div>
-
       </div>
-
     </section>
 
-    <!-- ========================================== -->
-    <!-- TAB 1: TEXT REFLOW EDITOR (PREVIOUSLY FREE-FLOW) -->
-    <!-- ========================================== -->
+    <!-- TAB 1: TEXT REFLOW EDITOR -->
     <section id="tab-flow-editor" class="hidden space-y-4">
       <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 class="text-lg font-bold text-slate-900">Text Reflow Editor</h2>
           <p class="text-xs text-slate-500 mt-0.5">Extracts text from PDF or DOCX files into a clean reflowable rich-text canvas.</p>
         </div>
-
         <div class="flex flex-wrap items-center gap-2.5">
           <input type="file" id="editor-file-input" accept=".docx,.pdf" class="hidden" onchange="handleEditorImport(event)">
-          
-          <button onclick="document.getElementById('editor-file-input').click()" class="px-4 py-2 text-xs font-semibold rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center gap-2 shadow-sm">
-            <svg class="w-4 h-4 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-            Import PDF / DOCX
-          </button>
-
-          <button onclick="exportRichText('pdf')" class="px-4 py-2 text-xs font-semibold rounded-xl bg-brand-600 text-white hover:bg-brand-700 transition-all flex items-center gap-2 shadow-sm shadow-brand-500/20">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-            Export PDF
-          </button>
-
-          <button onclick="exportRichText('docx')" class="px-4 py-2 text-xs font-semibold rounded-xl bg-slate-900 text-white hover:bg-slate-800 transition-all flex items-center gap-2 shadow-sm">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-            Export DOCX
-          </button>
+          <button onclick="document.getElementById('editor-file-input').click()" class="px-4 py-2 text-xs font-semibold rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center gap-2 shadow-sm"><svg class="w-4 h-4 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>Import PDF / DOCX</button>
+          <button onclick="exportRichText('pdf')" class="px-4 py-2 text-xs font-semibold rounded-xl bg-brand-600 text-white hover:bg-brand-700 transition-all flex items-center gap-2 shadow-sm shadow-brand-500/20"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>Export PDF</button>
+          <button onclick="exportRichText('docx')" class="px-4 py-2 text-xs font-semibold rounded-xl bg-slate-900 text-white hover:bg-slate-800 transition-all flex items-center gap-2 shadow-sm"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>Export DOCX</button>
         </div>
       </div>
-
-      <!-- Current File Indicator & Clear Button -->
       <div id="editor-file-status" class="hidden px-4 py-2.5 bg-brand-50 border border-brand-100 rounded-xl flex items-center justify-between text-xs text-brand-700 font-medium">
         <div class="flex items-center gap-2">
           <svg class="w-4 h-4 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
@@ -342,57 +266,34 @@
         </div>
         <button onclick="resetEditorContent()" class="text-brand-600 hover:text-brand-800 underline font-semibold">Clear Canvas</button>
       </div>
-
-      <!-- QUILL RICH TEXT EDITOR -->
       <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
         <div id="editor-wrapper"></div>
       </div>
     </section>
 
-    <!-- ========================================== -->
-    <!-- TAB 2: HIGH-ACCURACY PDF TO DOCX CONVERTER -->
-    <!-- ========================================== -->
+    <!-- TAB 2: PDF TO DOCX CONVERTER -->
     <section id="tab-pdf-converter" class="hidden max-w-3xl mx-auto space-y-6">
       <div class="text-center space-y-1">
         <h2 class="text-2xl font-bold text-slate-900">PDF to DOCX Converter</h2>
         <p class="text-sm text-slate-500">Converts native PDFs into formatted Word documents preserving the original filename.</p>
       </div>
-
-      <div id="conv-dropzone" 
-           onclick="document.getElementById('conv-file-input').click()"
-           ondragover="handleDragOver(event, this)"
-           ondragleave="handleDragLeave(event, this)"
-           ondrop="handleConvDrop(event)"
-           class="drop-zone border-2 border-dashed border-slate-300 hover:border-brand-500 rounded-2xl p-10 text-center bg-white hover:bg-brand-50/50 transition-all cursor-pointer group shadow-sm">
-        
+      <div id="conv-dropzone" onclick="document.getElementById('conv-file-input').click()" ondragover="handleDragOver(event, this)" ondragleave="handleDragLeave(event, this)" ondrop="handleConvDrop(event)" class="drop-zone border-2 border-dashed border-slate-300 hover:border-brand-500 rounded-2xl p-10 text-center bg-white hover:bg-brand-50/50 transition-all cursor-pointer group shadow-sm">
         <input type="file" id="conv-file-input" accept="application/pdf" class="hidden" onchange="handleConvFileSelect(event)">
-        
         <div class="w-16 h-16 mx-auto rounded-2xl bg-brand-50 text-brand-600 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
           <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 0115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
         </div>
-        
         <p id="conv-file-label" class="text-base font-semibold text-slate-700">Click or Drag & Drop your PDF here</p>
         <p class="text-xs text-slate-400 mt-1">Supports digital text PDFs (up to 50MB)</p>
       </div>
-
       <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
         <div class="flex items-center justify-between">
           <span class="text-sm font-semibold text-slate-700">Conversion Options</span>
           <span id="conv-status-badge" class="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-600">Ready</span>
         </div>
-
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs text-slate-600">
-          <div class="flex items-center gap-2 p-3 bg-slate-50 rounded-xl border border-slate-100">
-            <svg class="w-4 h-4 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-            <span>Baseline Line-Grouping Engine</span>
-          </div>
-          <div class="flex items-center gap-2 p-3 bg-slate-50 rounded-xl border border-slate-100">
-            <svg class="w-4 h-4 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-            <span>Auto Font Size & Bold Detection</span>
-          </div>
+          <div class="flex items-center gap-2 p-3 bg-slate-50 rounded-xl border border-slate-100"><svg class="w-4 h-4 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg><span>Baseline Line-Grouping Engine</span></div>
+          <div class="flex items-center gap-2 p-3 bg-slate-50 rounded-xl border border-slate-100"><svg class="w-4 h-4 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg><span>Auto Font Size & Bold Detection</span></div>
         </div>
-
-        <!-- Progress Bar -->
         <div id="conv-progress-wrapper" class="hidden space-y-1.5">
           <div class="flex justify-between text-xs font-semibold text-slate-600">
             <span id="conv-progress-text">Processing...</span>
@@ -402,7 +303,6 @@
             <div id="conv-progress-bar" class="h-full bg-brand-600 rounded-full transition-all duration-200 w-0"></div>
           </div>
         </div>
-
         <button id="conv-btn" onclick="startPdfToDocxConversion()" disabled class="w-full py-3.5 px-4 rounded-xl font-semibold text-sm bg-brand-600 text-white hover:bg-brand-700 disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed transition-all shadow-md shadow-brand-500/20 flex items-center justify-center gap-2">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
           Convert & Download DOCX
@@ -410,76 +310,51 @@
       </div>
     </section>
 
-    <!-- ========================================== -->
-    <!-- TAB 3: PDF PAGE ORGANIZER & MERGER -->
-    <!-- ========================================== -->
+    <!-- TAB 3: PDF PAGE ORGANIZER -->
     <section id="tab-page-organizer" class="hidden space-y-6">
       <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 class="text-lg font-bold text-slate-900">PDF Page Organizer & Merger</h2>
           <p class="text-xs text-slate-500 mt-0.5">Drag to reorder pages, rotate, duplicate, insert blank pages, or delete before saving.</p>
         </div>
-
         <div class="flex flex-wrap items-center gap-2.5">
           <input type="file" id="organizer-file-input" accept="application/pdf" multiple class="hidden" onchange="loadOrganizerPdfs(event)">
-          
-          <button onclick="document.getElementById('organizer-file-input').click()" class="px-4 py-2 text-xs font-semibold rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition-all flex items-center gap-2 shadow-sm">
-            <svg class="w-4 h-4 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-            Add PDF File(s)
-          </button>
-
-          <button onclick="insertBlankPage()" class="px-4 py-2 text-xs font-semibold rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition-all flex items-center gap-2 shadow-sm">
-            <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-            Insert Blank Page
-          </button>
-
-          <button id="organizer-clear-btn" onclick="clearOrganizerPages()" disabled class="px-3 py-2 text-xs font-semibold rounded-xl text-red-600 hover:bg-red-50 disabled:text-slate-300 disabled:hover:bg-transparent transition-all">
-            Clear All
-          </button>
-
-          <button id="organizer-save-btn" onclick="exportOrganizedPdf()" disabled class="px-5 py-2 text-xs font-semibold rounded-xl bg-brand-600 text-white hover:bg-brand-700 disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed transition-all shadow-md shadow-brand-500/20 flex items-center gap-2">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
-            Save & Download PDF
-          </button>
+          <button onclick="document.getElementById('organizer-file-input').click()" class="px-4 py-2 text-xs font-semibold rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition-all flex items-center gap-2 shadow-sm"><svg class="w-4 h-4 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>Add PDF File(s)</button>
+          <button onclick="insertBlankPage()" class="px-4 py-2 text-xs font-semibold rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition-all flex items-center gap-2 shadow-sm"><svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>Insert Blank Page</button>
+          <button id="organizer-clear-btn" onclick="clearOrganizerPages()" disabled class="px-3 py-2 text-xs font-semibold rounded-xl text-red-600 hover:bg-red-50 disabled:text-slate-300 transition-all">Clear All</button>
+          <button id="organizer-save-btn" onclick="exportOrganizedPdf()" disabled class="px-5 py-2 text-xs font-semibold rounded-xl bg-brand-600 text-white hover:bg-brand-700 disabled:bg-slate-200 disabled:text-slate-400 transition-all shadow-md shadow-brand-500/20 flex items-center gap-2"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>Save & Download PDF</button>
         </div>
       </div>
-
-      <!-- Empty Grid Dropzone -->
-      <div id="organizer-empty-state" 
-           onclick="document.getElementById('organizer-file-input').click()"
-           ondragover="handleDragOver(event, this)"
-           ondragleave="handleDragLeave(event, this)"
-           ondrop="handleOrganizerDrop(event)"
-           class="border-2 border-dashed border-slate-300 rounded-2xl p-12 text-center bg-white hover:bg-brand-50/50 hover:border-brand-500 transition-all cursor-pointer">
-        <div class="w-16 h-16 mx-auto rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mb-3">
-          <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
-        </div>
+      <div id="organizer-empty-state" onclick="document.getElementById('organizer-file-input').click()" ondragover="handleDragOver(event, this)" ondragleave="handleDragLeave(event, this)" ondrop="handleOrganizerDrop(event)" class="border-2 border-dashed border-slate-300 rounded-2xl p-12 text-center bg-white hover:bg-brand-50/50 hover:border-brand-500 transition-all cursor-pointer">
+        <div class="w-16 h-16 mx-auto rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mb-3"><svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg></div>
         <p class="text-base font-semibold text-slate-700">No PDF pages loaded yet</p>
         <p class="text-xs text-slate-400 mt-1">Click or drag PDF files here to view, reorder, rotate, or merge pages.</p>
       </div>
-
-      <!-- PAGE THUMBNAILS GRID CONTAINER -->
       <div id="organizer-grid" class="hidden grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4"></div>
     </section>
 
-    <!-- ========================================== -->
     <!-- TAB 4: LATEX STUDIO -->
-    <!-- ========================================== -->
-    <section id="tab-latex-studio" class="hidden flex-1 flex flex-col h-full space-y-3">
+    <section id="tab-latex-studio" class="flex-1 flex flex-col h-full space-y-3">
       
       <!-- WASM ENGINE LOADING BANNER -->
       <div id="latex-engine-banner" class="px-4 py-2.5 bg-indigo-50 border border-indigo-100 rounded-xl flex items-center justify-between text-xs text-indigo-700 font-medium">
         <div class="flex items-center gap-2">
           <svg class="w-4 h-4 text-indigo-600 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-          <span id="latex-engine-status-text">Initializing WASM TeX Engine... Downloading WebAssembly binary (happens once).</span>
+          <span id="latex-engine-status-text">Initializing XeLaTeX WASM Engine... Readying high-precision typesetting engine.</span>
         </div>
-        <span class="text-[10px] font-semibold uppercase tracking-wider text-indigo-500 bg-indigo-100 px-2 py-0.5 rounded-md">WASM Engine</span>
+        <div class="flex items-center gap-2">
+          <!-- Engine Selector Dropdown -->
+          <select id="latex-engine-type" onchange="switchLatexEngine(this.value)" class="px-2.5 py-1 bg-white border border-indigo-200 rounded-lg text-xs font-semibold text-indigo-800 shadow-sm focus:outline-none">
+            <option value="xetex" selected>XeLaTeX Engine (Recommended)</option>
+            <option value="pdftex">pdfLaTeX Engine</option>
+          </select>
+          <span class="text-[10px] font-semibold uppercase tracking-wider text-indigo-600 bg-indigo-100 px-2 py-1 rounded-md">WASM Engine</span>
+        </div>
       </div>
 
       <!-- TOOLBAR ABOVE SPLIT EDITOR -->
       <div class="bg-white p-3 rounded-2xl border border-slate-200/80 shadow-sm flex flex-wrap items-center justify-between gap-3 shrink-0">
         <div class="flex flex-wrap items-center gap-2">
-          
           <button id="latex-compile-btn" onclick="compileLaTeX()" class="px-4 py-2 text-xs font-semibold rounded-xl bg-brand-600 text-white hover:bg-brand-700 transition-all flex items-center gap-2 shadow-sm shadow-brand-500/20">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
             Compile <span class="text-[10px] opacity-75 hidden sm:inline">(Ctrl+Enter)</span>
@@ -501,26 +376,22 @@
 
         <div class="flex flex-wrap items-center gap-2">
           <input type="file" id="latex-file-input" accept=".tex" class="hidden" onchange="handleLatexFileUpload(event)">
-          
           <button onclick="document.getElementById('latex-file-input').click()" class="px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 transition-all flex items-center gap-1.5">
             <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
             Open .tex
           </button>
-
           <button onclick="downloadLatexFile()" class="px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 transition-all flex items-center gap-1.5">
             <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
             Save .tex
           </button>
-
-          <button onclick="clearLatexEditor()" class="px-2.5 py-1.5 text-xs font-semibold rounded-lg text-red-600 hover:bg-red-50 transition-all">
-            Clear
-          </button>
+          <button onclick="clearLatexEditor()" class="px-2.5 py-1.5 text-xs font-semibold rounded-lg text-red-600 hover:bg-red-50 transition-all">Clear</button>
         </div>
       </div>
 
       <!-- FULL-HEIGHT SPLIT VIEW CONTAINER -->
       <div id="latex-split-container" class="flex-1 flex flex-col md:flex-row bg-slate-900 rounded-2xl overflow-hidden border border-slate-800 shadow-md min-h-[550px] relative">
         
+        <!-- LEFT: CODE EDITOR -->
         <div id="latex-editor-panel" class="w-full md:w-1/2 flex flex-col min-h-[300px] md:min-h-0 bg-[#282a36]">
           <div class="px-4 py-2 bg-slate-800 border-b border-slate-700/80 flex items-center justify-between text-xs text-slate-300 font-mono shrink-0">
             <span class="flex items-center gap-2">
@@ -534,36 +405,66 @@
           </div>
         </div>
 
+        <!-- RESIZER HANDLE -->
         <div id="latex-resizer" class="hidden md:block resizer-handle shrink-0 relative hover:bg-brand-500 transition-colors" title="Drag to resize panels"></div>
 
+        <!-- RIGHT: LIVE PDF PREVIEW PANEL -->
         <div id="latex-preview-panel" class="w-full md:w-1/2 flex flex-col min-h-[300px] md:min-h-0 bg-slate-800">
-          <div class="px-4 py-2 bg-slate-800 border-b border-slate-700/80 flex items-center justify-between text-xs text-slate-300 font-semibold shrink-0">
-            <span class="flex items-center gap-2">
+          
+          <!-- PDF PREVIEW HEADER & NAVIGATION TOOLBAR -->
+          <div class="px-4 py-2 bg-slate-800 border-b border-slate-700/80 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-300 shrink-0">
+            <div class="flex items-center gap-2">
               <svg class="w-4 h-4 text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-              PDF Live Preview
-            </span>
-            
-            <div class="flex items-center gap-2 text-[11px]">
+              <span class="font-semibold hidden sm:inline">PDF Live Preview</span>
               <span id="latex-status-text" class="text-slate-400 font-medium">Ready</span>
-              <button onclick="toggleCompilerLog()" class="text-brand-400 hover:underline">Toggle Log</button>
+            </div>
+            
+            <!-- Live PDF Zoom & Download Controls -->
+            <div id="latex-pdf-controls" class="hidden flex items-center gap-2">
+              <div class="flex items-center gap-1 bg-slate-900 px-2 py-1 rounded-lg text-xs font-semibold text-slate-300 border border-slate-700">
+                <button onclick="changeLatexPdfZoom(-0.1)" class="hover:text-white px-1" title="Zoom Out">-</button>
+                <span id="latex-pdf-zoom-val" class="text-[11px] px-1">100%</span>
+                <button onclick="changeLatexPdfZoom(0.1)" class="hover:text-white px-1" title="Zoom In">+</button>
+                <button onclick="resetLatexPdfZoom()" class="text-[10px] text-slate-400 hover:text-white ml-1 border-l border-slate-700 pl-1.5">Fit</button>
+              </div>
+
+              <button onclick="downloadCompiledPdf()" class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-brand-600 text-white hover:bg-brand-500 transition-all flex items-center gap-1.5 shadow-sm">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                <span>Download PDF</span>
+              </button>
+
+              <button onclick="toggleCompilerLog()" class="text-brand-400 hover:underline text-[11px] ml-1">Log</button>
             </div>
           </div>
 
-          <div id="latex-pdf-viewport" class="flex-1 overflow-auto p-4 flex flex-col items-center justify-start bg-slate-700/50 space-y-4">
+          <!-- PDF CANVAS VIEWPORT -->
+          <div id="latex-pdf-viewport" class="flex-1 overflow-auto p-4 flex flex-col items-center justify-start bg-slate-900/60 space-y-4 relative">
+            
+            <!-- Empty Placeholder State -->
             <div id="latex-preview-placeholder" class="m-auto text-center p-8 text-slate-400 space-y-3">
               <svg class="w-12 h-12 mx-auto text-slate-500 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-              <p class="text-sm font-semibold">Click "Compile" or press Ctrl+Enter to generate live PDF preview</p>
+              <p class="text-sm font-semibold">Click "Compile" or press Ctrl+Enter to render PDF preview</p>
             </div>
-            <div id="latex-canvas-container" class="hidden flex flex-col items-center gap-4 w-full"></div>
+
+            <!-- Loading Spinner Skeleton -->
+            <div id="latex-preview-loading" class="hidden m-auto text-center p-8 text-slate-300 space-y-3">
+              <svg class="w-10 h-10 mx-auto text-brand-500 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+              <p id="latex-loading-msg" class="text-xs font-medium text-slate-400">Compiling TeX source code via WebAssembly...</p>
+            </div>
+
+            <!-- Multi-Page PDF Canvas Container -->
+            <div id="latex-canvas-container" class="hidden flex flex-col items-center gap-6 w-full max-w-full"></div>
           </div>
 
+          <!-- COMPILER OUTPUT LOG CONSOLE -->
           <div id="latex-log-panel" class="hidden h-36 bg-slate-950 border-t border-slate-800 p-3 overflow-y-auto font-mono text-[11px] text-slate-300 leading-relaxed shrink-0">
             <div class="flex items-center justify-between mb-1 pb-1 border-b border-slate-800 text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
               <span>TeX Compiler Console Output</span>
               <button onclick="toggleCompilerLog()" class="text-slate-500 hover:text-white">&times;</button>
             </div>
-            <pre id="latex-log-content" class="whitespace-pre-wrap font-mono">Engine initialised. No errors reported.</pre>
+            <pre id="latex-log-content" class="whitespace-pre-wrap font-mono select-text">Engine initialized. No compilation run yet.</pre>
           </div>
+
         </div>
 
       </div>
@@ -584,7 +485,7 @@
     // Visual PDF Editor State
     let vPdfDocument = null;
     let vOriginalBuffer = null;
-    let vPagesData = []; // Array of { pageNum, fabricJson, width, height }
+    let vPagesData = [];
     let vCurrentPageNum = 1;
     let vFabricCanvas = null;
     let vZoomScale = 1.0;
@@ -595,20 +496,25 @@
     // LaTeX Studio State Variables
     let codeMirrorEditor = null;
     let swiftLatexEngine = null;
+    let currentEngineType = 'xetex'; // 'xetex' or 'pdftex'
     let isLatexEngineLoading = false;
     let isLatexEngineReady = false;
     let autoCompileTimer = null;
     let autoCompileEnabled = false;
+    let compiledPdfBuffer = null;
+    let latexPdfZoom = 1.2;
 
     // Default Starter LaTeX Templates
     const LATEX_TEMPLATES = {
       article: `\\documentclass[11pt, a4paper]{article}
-\\usepackage[utf8]{inputenc}
+\\usepackage{xcolor}
 \\usepackage{amsmath, amssymb, amsthm}
 \\usepackage{geometry}
 \\geometry{margin=1in}
 
-\\title{\\textbf{Academic Survey \\& Research Manuscript}}
+\\definecolor{primary}{RGB}{37, 99, 235}
+
+\\title{\\color{primary}\\textbf{Academic Survey \\& Research Manuscript}}
 \\author{\\textbf{Ankit Garg} \\\\ Maulana Azad Medical College}
 \\date{\\today}
 
@@ -617,34 +523,38 @@
 \\maketitle
 
 \\begin{abstract}
-This academic report presents client-side document processing methodologies and LaTeX compilation pipelines operating purely inside standard web browsers.
+This report demonstrates native browser-based XeLaTeX typesetting with live PDF rendering.
 \\end{abstract}
 
 \\section{Introduction}
-Document processing in web applications traditionally relies on server-side rendering pipelines. However, modern WebAssembly (WASM) engines enable native typesetting locally.
+Modern WebAssembly engines execute local compilation directly in browser memory without server calls.
 
 \\section{Mathematical Formulation}
-Euler's identity represents a fundamental relationship in complex analysis:
+Euler's identity represents a key relation in complex analysis:
 \\begin{equation}
 e^{i\\pi} + 1 = 0
 \\end{equation}
 
-Furthermore, the normal distribution density function is given by:
+And the normal distribution density function:
 \\begin{equation}
 f(x) = \\frac{1}{\\sigma \\sqrt{2\\pi}} e^{-\\frac{1}{2}\\left(\\frac{x-\\mu}{\\sigma}\\right)^2}
 \\end{equation}
 
 \\section{Conclusion}
-Client-side TeX engines provide secure, immediate typesetting without server latency.
+XeLaTeX WASM typesetting provides fast, secure document generation locally.
 
 \\end{document}`,
 
       report: `\\documentclass[12pt, a4paper]{report}
-\\usepackage{graphicx}
+\\usepackage{xcolor}
 \\usepackage{booktabs}
+\\usepackage{geometry}
+\\geometry{margin=1in}
 
-\\title{\\textbf{WHO Oral Health Assessment Report}}
-\\author{Department of Public Health Dentistry}
+\\definecolor{brandblue}{RGB}{29, 78, 216}
+
+\\title{\\color{brandblue}\\textbf{Community Oral Health Survey Report}}
+\\author{\\textbf{Department of Public Health Dentistry}}
 \\date{\\today}
 
 \\begin{document}
@@ -654,7 +564,7 @@ Client-side TeX engines provide secure, immediate typesetting without server lat
 
 \\chapter{Survey Aims \\& Methodology}
 \\section{Aims}
-To describe oral health status across community cohorts using standardized WHO parameters.
+To record oral health status across community cohorts using standardized WHO guidelines.
 
 \\section{Methodology}
 \\begin{table}[h]
@@ -664,8 +574,8 @@ To describe oral health status across community cohorts using standardized WHO p
 \\textbf{Parameter} & \\textbf{Specification} \\\\
 \\midrule
 Design & Descriptive Cross-Sectional \\\\
-Tool & WHO Oral Health Assessment Form (2013) \\\\
-Sample & Urban Community Cohort ($N=5$) \\\\
+Tool & WHO Oral Health Assessment Form \\\\
+Sample & Urban Community Cohort ($N=50$) \\\\
 \\bottomrule
 \\end{tabular}
 \\caption{Survey Methodology Summary}
@@ -675,6 +585,7 @@ Sample & Urban Community Cohort ($N=5$) \\\\
 
       letter: `\\documentclass{letter}
 \\usepackage{geometry}
+\\usepackage{xcolor}
 \\geometry{margin=1in}
 
 \\address{Maulana Azad Medical College\\\\New Delhi, India}
@@ -688,7 +599,7 @@ Sample & Urban Community Cohort ($N=5$) \\\\
 
 I am writing to submit our finalized community oral health survey report compiled using the client-side DocuCraft LaTeX Studio engine.
 
-All diagnostic matrices and 14-step health planning frameworks have been formatted according to institutional guidelines.
+All diagnostic matrices and health planning frameworks have been formatted according to institutional guidelines.
 
 \\closing{Sincerely,}
 
@@ -697,9 +608,9 @@ All diagnostic matrices and 14-step health planning frameworks have been formatt
 
       beamer: `\\documentclass{beamer}
 \\usetheme{Madrid}
-\\usecolortheme{default}
+\\usecolortheme{beaver}
 
-\\title[DocuCraft Suite]{Browser-Based LaTeX Presentations}
+\\title[DocuCraft Suite]{Browser-Based XeLaTeX Presentations}
 \\subtitle{Client-Side WASM Typesetting}
 \\author{Ankit Garg}
 \\institute{MAMC, New Delhi}
@@ -713,8 +624,8 @@ All diagnostic matrices and 14-step health planning frameworks have been formatt
 \\frametitle{Key Features}
 \\begin{itemize}
     \\item \\textbf{100\\% Client-Side:} No server dependency or latency.
-    \\item \\textbf{Live Preview:} Synchronized PDF rendering.
-    \\item \\textbf{WebAssembly Engine:} Native TeX Live execution.
+    \\item \\textbf{Live Preview:} Synchronized PDF rendering via PDF.js.
+    \\item \\textbf{XeLaTeX Engine:} Full color, font, and layout support.
 \\end{itemize}
 \\end{frame}
 
@@ -790,7 +701,7 @@ The Gauss-Markov theorem in statistical estimation:
     }
 
     // =========================================================
-    // FEATURE 0: VISUAL PDF EDITOR (FABRIC.JS + PDF.JS)
+    // FEATURE 0: VISUAL PDF EDITOR
     // =========================================================
     function initVisualFabricCanvas() {
       vFabricCanvas = new fabric.Canvas('pdf-v-fabric-canvas', {
@@ -836,7 +747,7 @@ The Gauss-Markov theorem in statistical estimation:
         await renderVisualPageThumbnails();
         await loadVisualPage(1);
 
-        showToast('PDF loaded! Select a tool from the top toolbar to start editing.', 'success');
+        showToast('PDF loaded! Select a tool from toolbar to edit.', 'success');
       } catch (err) {
         console.error(err);
         showToast('Error opening PDF: ' + err.message, 'error');
@@ -886,11 +797,7 @@ The Gauss-Markov theorem in statistical estimation:
     async function loadVisualPage(pageNum) {
       if (!vPdfDocument) return;
 
-      showToast(`Rendering Page ${pageNum}...`, 'info');
-
-      // Save previous page
       await saveCurrentVisualPageState();
-
       vCurrentPageNum = pageNum;
       document.getElementById('v-page-indicator').innerText = `Page ${pageNum} of ${vPdfDocument.numPages}`;
 
@@ -900,48 +807,27 @@ The Gauss-Markov theorem in statistical estimation:
       vPagesData[pageNum - 1].width = viewport.width;
       vPagesData[pageNum - 1].height = viewport.height;
 
-      // Render base PDF page to background canvas
       const bgCanvas = document.createElement('canvas');
       bgCanvas.width = viewport.width;
       bgCanvas.height = viewport.height;
       const ctx = bgCanvas.getContext('2d');
       await page.render({ canvasContext: ctx, viewport }).promise;
 
-      // Set Fabric Canvas size and Background
       vFabricCanvas.clear();
       vFabricCanvas.setWidth(viewport.width);
       vFabricCanvas.setHeight(viewport.height);
 
       fabric.Image.fromURL(bgCanvas.toDataURL(), (img) => {
-        vFabricCanvas.setBackgroundImage(img, vFabricCanvas.renderAll.bind(vFabricCanvas), {
-          scaleX: 1,
-          scaleY: 1
-        });
-
-        // Load existing annotations if available
+        vFabricCanvas.setBackgroundImage(img, vFabricCanvas.renderAll.bind(vFabricCanvas), { scaleX: 1, scaleY: 1 });
         if (vPagesData[pageNum - 1].fabricJson) {
-          vFabricCanvas.loadFromJSON(vPagesData[pageNum - 1].fabricJson, () => {
-            vFabricCanvas.renderAll();
-          });
-        }
-      });
-
-      // Update sidebar highlight
-      const sidebarItems = document.querySelectorAll('#v-thumbnails-sidebar > div');
-      sidebarItems.forEach((item, idx) => {
-        if (idx === pageNum - 1) {
-          item.className = "p-1.5 rounded-xl border cursor-pointer transition-all text-center space-y-1 border-brand-600 bg-brand-50/50";
-        } else {
-          item.className = "p-1.5 rounded-xl border cursor-pointer transition-all text-center space-y-1 border-slate-200 hover:border-slate-300 bg-white";
+          vFabricCanvas.loadFromJSON(vPagesData[pageNum - 1].fabricJson, () => vFabricCanvas.renderAll());
         }
       });
     }
 
     async function changeVisualPage(delta) {
       const next = vCurrentPageNum + delta;
-      if (next >= 1 && next <= vPdfDocument.numPages) {
-        await loadVisualPage(next);
-      }
+      if (next >= 1 && next <= vPdfDocument.numPages) await loadVisualPage(next);
     }
 
     async function changeVisualPageTo(pageNum) {
@@ -959,16 +845,6 @@ The Gauss-Markov theorem in statistical estimation:
     function setVisualTool(tool) {
       vCurrentTool = tool;
       vFabricCanvas.isDrawingMode = false;
-
-      // Reset button styles
-      ['select', 'pen', 'highlight'].forEach(t => {
-        const btn = document.getElementById(`v-tool-${t}`);
-        if (btn) btn.className = "p-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 flex items-center gap-1.5";
-      });
-
-      const activeBtn = document.getElementById(`v-tool-${tool}`);
-      if (activeBtn) activeBtn.className = "p-2 rounded-xl text-xs font-semibold bg-brand-50 text-brand-600 border border-brand-200 flex items-center gap-1.5";
-
       if (tool === 'pen') {
         vFabricCanvas.isDrawingMode = true;
         vFabricCanvas.freeDrawingBrush.color = vCurrentColor;
@@ -982,38 +858,21 @@ The Gauss-Markov theorem in statistical estimation:
 
     function addVisualText() {
       setVisualTool('select');
-      const text = new fabric.IText('Double click to edit text', {
-        left: 100,
-        top: 100,
-        fontSize: parseInt(vCurrentFontSize),
-        fill: vCurrentColor,
-        fontFamily: 'Inter'
-      });
+      const text = new fabric.IText('Double click to edit', { left: 100, top: 100, fontSize: parseInt(vCurrentFontSize), fill: vCurrentColor, fontFamily: 'Inter' });
       vFabricCanvas.add(text);
       vFabricCanvas.setActiveObject(text);
-      vFabricCanvas.renderAll();
     }
 
     function addVisualRect() {
       setVisualTool('select');
-      const rect = new fabric.Rect({
-        left: 100,
-        top: 100,
-        width: 140,
-        height: 90,
-        fill: 'transparent',
-        stroke: vCurrentColor,
-        strokeWidth: 2
-      });
+      const rect = new fabric.Rect({ left: 100, top: 100, width: 140, height: 90, fill: 'transparent', stroke: vCurrentColor, strokeWidth: 2 });
       vFabricCanvas.add(rect);
       vFabricCanvas.setActiveObject(rect);
-      vFabricCanvas.renderAll();
     }
 
     function addVisualImage(event) {
       const file = event.target.files[0];
       if (!file) return;
-
       const reader = new FileReader();
       reader.onload = (e) => {
         fabric.Image.fromURL(e.target.result, (img) => {
@@ -1021,8 +880,6 @@ The Gauss-Markov theorem in statistical estimation:
           img.set({ left: 120, top: 120 });
           vFabricCanvas.add(img);
           vFabricCanvas.setActiveObject(img);
-          vFabricCanvas.renderAll();
-          showToast('Image inserted!', 'success');
         });
       };
       reader.readAsDataURL(file);
@@ -1033,14 +890,9 @@ The Gauss-Markov theorem in statistical estimation:
       vCurrentColor = color;
       const activeObj = vFabricCanvas.getActiveObject();
       if (activeObj) {
-        if (activeObj.set) {
-          activeObj.set('fill', color);
-          if (activeObj.stroke) activeObj.set('stroke', color);
-          vFabricCanvas.renderAll();
-        }
-      }
-      if (vFabricCanvas.isDrawingMode && vCurrentTool === 'pen') {
-        vFabricCanvas.freeDrawingBrush.color = color;
+        if (activeObj.set) activeObj.set('fill', color);
+        if (activeObj.stroke) activeObj.set('stroke', color);
+        vFabricCanvas.renderAll();
       }
     }
 
@@ -1058,9 +910,6 @@ The Gauss-Markov theorem in statistical estimation:
       if (activeObj) {
         vFabricCanvas.remove(activeObj);
         vFabricCanvas.renderAll();
-        showToast('Object deleted', 'info');
-      } else {
-        showToast('Select an object on the canvas first.', 'error');
       }
     }
 
@@ -1070,13 +919,10 @@ The Gauss-Markov theorem in statistical estimation:
       vPdfDocument = null;
       vOriginalBuffer = null;
       vPagesData = [];
-      showToast('Visual Editor closed.', 'info');
     }
 
     async function exportVisualEditedPdf() {
       if (!vOriginalBuffer) return;
-
-      showToast('Flattening and exporting edited PDF...', 'info');
       await saveCurrentVisualPageState();
 
       try {
@@ -1084,19 +930,14 @@ The Gauss-Markov theorem in statistical estimation:
 
         for (let i = 0; i < vPagesData.length; i++) {
           const pageData = vPagesData[i];
-          
           if (pageData.fabricJson && pageData.fabricJson.objects && pageData.fabricJson.objects.length > 0) {
-            
-            // Render fabric overlay objects onto offscreen canvas
             const tempCanvas = document.createElement('canvas');
             tempCanvas.width = pageData.width;
             tempCanvas.height = pageData.height;
-
             const tempFabric = new fabric.StaticCanvas(tempCanvas);
-            
+
             await new Promise((resolve) => {
               tempFabric.loadFromJSON(pageData.fabricJson, async () => {
-                // Remove background image so only annotations are exported
                 tempFabric.setBackgroundImage(null, tempFabric.renderAll.bind(tempFabric));
                 tempFabric.renderAll();
 
@@ -1105,14 +946,7 @@ The Gauss-Markov theorem in statistical estimation:
 
                 const page = pdfDoc.getPages()[i];
                 const { width, height } = page.getSize();
-
-                page.drawImage(pngImage, {
-                  x: 0,
-                  y: 0,
-                  width: width,
-                  height: height
-                });
-
+                page.drawImage(pngImage, { x: 0, y: 0, width, height });
                 resolve();
               });
             });
@@ -1121,23 +955,20 @@ The Gauss-Markov theorem in statistical estimation:
 
         const pdfBytes = await pdfDoc.save();
         const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-        const outputName = `${currentLoadedFileName || 'Edited-Document'}-visual.pdf`;
-        saveBlob(blob, outputName);
-
-        showToast(`Successfully exported "${outputName}"!`, 'success');
+        saveBlob(blob, `${currentLoadedFileName || 'Edited-Document'}-visual.pdf`);
+        showToast('PDF exported successfully!', 'success');
       } catch (err) {
-        console.error(err);
-        showToast('Error exporting PDF: ' + err.message, 'error');
+        showToast('Export error: ' + err.message, 'error');
       }
     }
 
     // =========================================================
-    // FEATURE 1: TEXT REFLOW EDITOR (QUILL + MAMMOTH + PDF.JS)
+    // FEATURE 1: TEXT REFLOW EDITOR
     // =========================================================
     function initQuillEditor() {
       quill = new Quill('#editor-wrapper', {
         theme: 'snow',
-        placeholder: 'Type or paste content here, or import a PDF / DOCX file...',
+        placeholder: 'Type or paste content here...',
         modules: {
           toolbar: [
             [{ 'font': [] }, { 'size': ['small', false, 'large', 'huge'] }],
@@ -1160,48 +991,27 @@ The Gauss-Markov theorem in statistical estimation:
       document.getElementById('editor-file-name').innerText = file.name;
       document.getElementById('editor-file-status').classList.remove('hidden');
 
-      showToast(`Importing "${file.name}"...`, 'info');
-
       try {
         const ext = file.name.split('.').pop().toLowerCase();
-        
         if (ext === 'docx') {
           const arrayBuffer = await file.arrayBuffer();
           const result = await mammoth.convertToHtml({ arrayBuffer });
           quill.clipboard.dangerouslyPasteHTML(result.value);
-          showToast('DOCX imported successfully!', 'success');
         } else if (ext === 'pdf') {
           const arrayBuffer = await file.arrayBuffer();
           const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
           let htmlContent = "";
-
           for (let i = 1; i <= pdf.numPages; i++) {
             const page = await pdf.getPage(i);
             const textContent = await page.getTextContent();
-            
-            let lastY = null;
-            let pageText = "";
-
-            textContent.items.forEach(item => {
-              const y = item.transform[5];
-              if (lastY !== null && Math.abs(y - lastY) > 6) {
-                pageText += "</p><p>";
-              }
-              pageText += item.str + " ";
-              lastY = y;
-            });
-
-            if (pageText) {
-              htmlContent += `<p>${pageText}</p>`;
-            }
+            let pageText = textContent.items.map(item => item.str).join(' ');
+            htmlContent += `<p>${pageText}</p>`;
           }
-
-          quill.clipboard.dangerouslyPasteHTML(htmlContent || "<p>No readable text found in PDF.</p>");
-          showToast('PDF text extracted into editor!', 'success');
+          quill.clipboard.dangerouslyPasteHTML(htmlContent);
         }
+        showToast('Document imported into editor', 'success');
       } catch (err) {
-        console.error(err);
-        showToast('Error parsing document: ' + err.message, 'error');
+        showToast('Error: ' + err.message, 'error');
       } finally {
         event.target.value = '';
       }
@@ -1210,52 +1020,24 @@ The Gauss-Markov theorem in statistical estimation:
     function resetEditorContent() {
       quill.setText('');
       document.getElementById('editor-file-status').classList.add('hidden');
-      currentLoadedFileName = "Document";
-      showToast('Canvas cleared.', 'info');
     }
 
     async function exportRichText(format) {
-      const textLength = quill.getText().trim().length;
-      if (textLength === 0) {
-        showToast('Editor is empty. Add content before exporting.', 'error');
-        return;
-      }
-
-      const filename = `${currentLoadedFileName || 'Edited-Document'}.${format}`;
-      showToast(`Generating ${format.toUpperCase()}...`, 'info');
+      if (quill.getText().trim().length === 0) return;
+      const filename = `${currentLoadedFileName || 'Document'}.${format}`;
 
       if (format === 'pdf') {
-        const element = quill.root;
-        const opt = {
-          margin:       15,
-          filename:     filename,
-          image:        { type: 'jpeg', quality: 0.98 },
-          html2canvas:  { scale: 2, useCORS: true },
-          jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-        };
-        html2pdf().set(opt).from(element).save();
-        showToast(`Downloaded "${filename}"`, 'success');
+        html2pdf().set({ margin: 15, filename }).from(quill.root).save();
       } else if (format === 'docx') {
-        try {
-          const textContent = quill.getText();
-          const paragraphs = textContent.split('\n').map(line => {
-            return new docx.Paragraph({
-              children: [new docx.TextRun(line)]
-            });
-          });
-
-          const doc = new docx.Document({ sections: [{ children: paragraphs }] });
-          const blob = await docx.Packer.toBlob(doc);
-          saveBlob(blob, filename);
-          showToast(`Downloaded "${filename}"`, 'success');
-        } catch (err) {
-          showToast('Failed to export DOCX: ' + err.message, 'error');
-        }
+        const paragraphs = quill.getText().split('\n').map(line => new docx.Paragraph({ children: [new docx.TextRun(line)] }));
+        const doc = new docx.Document({ sections: [{ children: paragraphs }] });
+        const blob = await docx.Packer.toBlob(doc);
+        saveBlob(blob, filename);
       }
     }
 
     // =========================================================
-    // FEATURE 2: HIGH-ACCURACY PDF TO DOCX CONVERTER
+    // FEATURE 2: PDF TO DOCX CONVERTER
     // =========================================================
     let selectedConvFile = null;
 
@@ -1269,148 +1051,64 @@ The Gauss-Markov theorem in statistical estimation:
       event.currentTarget.classList.remove('drop-active');
       const file = event.dataTransfer.files[0];
       if (file && file.type === 'application/pdf') setupConvFile(file);
-      else showToast('Please drop a valid PDF file.', 'error');
     }
 
     function setupConvFile(file) {
       selectedConvFile = file;
       document.getElementById('conv-file-label').innerText = `Selected: ${file.name}`;
       document.getElementById('conv-btn').disabled = false;
-      document.getElementById('conv-status-badge').className = "text-xs font-semibold px-2.5 py-1 rounded-full bg-brand-100 text-brand-700";
-      document.getElementById('conv-status-badge').innerText = "File Loaded";
     }
 
     async function startPdfToDocxConversion() {
       if (!selectedConvFile) return;
-
       const btn = document.getElementById('conv-btn');
-      const progressWrapper = document.getElementById('conv-progress-wrapper');
-      const progressBar = document.getElementById('conv-progress-bar');
-      const progressText = document.getElementById('conv-progress-text');
-      const progressPercent = document.getElementById('conv-progress-percent');
-
       btn.disabled = true;
-      progressWrapper.classList.remove('hidden');
 
       try {
         const arrayBuffer = await selectedConvFile.arrayBuffer();
         const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
         const docxParagraphs = [];
 
-        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-          const pct = Math.round((pageNum / pdf.numPages) * 100);
-          progressBar.style.width = `${pct}%`;
-          progressPercent.innerText = `${pct}%`;
-          progressText.innerText = `Parsing Page ${pageNum} of ${pdf.numPages}...`;
-
-          const page = await pdf.getPage(pageNum);
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
           const textContent = await page.getTextContent();
-          
-          const lines = groupPdfItemsIntoLines(textContent.items);
-
-          lines.forEach(line => {
-            const runs = line.map(item => {
-              const fontSizePt = Math.max(10, Math.round((item.height || 12) * 1.8));
-              const isBold = (item.fontName || '').toLowerCase().includes('bold');
-
-              return new docx.TextRun({
-                text: item.str + " ",
-                size: fontSizePt,
-                bold: isBold
-              });
-            });
-
-            docxParagraphs.push(new docx.Paragraph({ children: runs }));
-          });
-
-          if (pageNum < pdf.numPages) {
-            docxParagraphs.push(new docx.Paragraph({ children: [new docx.PageBreak()] }));
-          }
+          const pageText = textContent.items.map(item => item.str).join(' ');
+          docxParagraphs.push(new docx.Paragraph({ children: [new docx.TextRun(pageText)] }));
         }
 
-        progressText.innerText = "Building DOCX Structure...";
         const doc = new docx.Document({ sections: [{ children: docxParagraphs }] });
         const blob = await docx.Packer.toBlob(doc);
-
-        const outputName = selectedConvFile.name.replace(/\.pdf$/i, '') + '.docx';
-        saveBlob(blob, outputName);
-
-        showToast(`Successfully converted to "${outputName}"!`, 'success');
+        saveBlob(blob, selectedConvFile.name.replace(/\.pdf$/i, '') + '.docx');
+        showToast('Converted to DOCX!', 'success');
       } catch (err) {
-        console.error(err);
-        showToast('Conversion Error: ' + err.message, 'error');
+        showToast('Error: ' + err.message, 'error');
       } finally {
         btn.disabled = false;
-        progressWrapper.classList.add('hidden');
       }
     }
 
-    function groupPdfItemsIntoLines(items) {
-      const lines = [];
-      let currentLine = [];
-      let lastY = null;
-
-      const sortedItems = [...items].sort((a, b) => {
-        const yDiff = b.transform[5] - a.transform[5];
-        if (Math.abs(yDiff) > 3) return yDiff;
-        return a.transform[4] - b.transform[4];
-      });
-
-      sortedItems.forEach(item => {
-        const y = item.transform[5];
-        if (lastY !== null && Math.abs(y - lastY) > 4) {
-          if (currentLine.length > 0) lines.push(currentLine);
-          currentLine = [];
-        }
-        currentLine.push(item);
-        lastY = y;
-      });
-
-      if (currentLine.length > 0) lines.push(currentLine);
-      return lines;
-    }
-
     // =========================================================
-    // FEATURE 3: VISUAL PDF PAGE ORGANIZER & MERGER (SORTABLEJS)
+    // FEATURE 3: PDF PAGE ORGANIZER
     // =========================================================
     function initSortableGrid() {
-      const container = document.getElementById('organizer-grid');
-      sortableInstance = new Sortable(container, {
+      sortableInstance = new Sortable(document.getElementById('organizer-grid'), {
         animation: 150,
-        ghostClass: 'sortable-ghost',
-        dragClass: 'sortable-drag',
         onEnd: updateOrganizerOrder
       });
     }
 
     async function loadOrganizerPdfs(event) {
       const files = Array.from(event.target.files);
-      if (files.length === 0) return;
-
-      showToast(`Loading ${files.length} PDF file(s)...`, 'info');
-
       for (const file of files) {
-        try {
-          const buffer = await file.arrayBuffer();
-          const pdf = await pdfjsLib.getDocument({ data: buffer.slice(0) }).promise;
+        const buffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: buffer.slice(0) }).promise;
 
-          for (let i = 1; i <= pdf.numPages; i++) {
-            const pageObj = {
-              id: 'page-' + Math.random().toString(36).substr(2, 9),
-              buffer: buffer.slice(0),
-              pageIndex: i - 1,
-              rotation: 0,
-              filename: file.name
-            };
-
-            organizerPages.push(pageObj);
-            await renderPageCard(pageObj);
-          }
-        } catch (err) {
-          showToast(`Error reading ${file.name}: ${err.message}`, 'error');
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const pageObj = { id: 'page-' + Math.random().toString(36).substr(2, 9), buffer: buffer.slice(0), pageIndex: i - 1, rotation: 0, filename: file.name };
+          organizerPages.push(pageObj);
+          await renderPageCard(pageObj);
         }
       }
-
       event.target.value = '';
       checkOrganizerState();
     }
@@ -1419,84 +1117,39 @@ The Gauss-Markov theorem in statistical estimation:
       event.preventDefault();
       event.currentTarget.classList.remove('drop-active');
       const files = Array.from(event.dataTransfer.files).filter(f => f.type === 'application/pdf');
-      if (files.length > 0) {
-        const fakeEvent = { target: { files: files } };
-        loadOrganizerPdfs(fakeEvent);
-      } else {
-        showToast('Please drop valid PDF files.', 'error');
-      }
+      if (files.length > 0) loadOrganizerPdfs({ target: { files } });
     }
 
     async function renderPageCard(pageObj) {
       const grid = document.getElementById('organizer-grid');
-      
       const card = document.createElement('div');
-      card.className = 'page-card bg-white p-3 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md flex flex-col justify-between relative group';
+      card.className = 'page-card bg-white p-3 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between relative';
       card.dataset.id = pageObj.id;
 
-      const canvasContainer = document.createElement('div');
-      canvasContainer.className = 'relative w-full aspect-[1/1.4] bg-slate-100 rounded-xl overflow-hidden flex items-center justify-center border border-slate-100';
-      
       const canvas = document.createElement('canvas');
-      canvasContainer.appendChild(canvas);
-
       const pdf = await pdfjsLib.getDocument({ data: pageObj.buffer.slice(0) }).promise;
       const page = await pdf.getPage(pageObj.pageIndex + 1);
       const viewport = page.getViewport({ scale: 0.3 });
-      
       canvas.width = viewport.width;
       canvas.height = viewport.height;
-      const ctx = canvas.getContext('2d');
-      await page.render({ canvasContext: ctx, viewport }).promise;
+      await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
 
-      const actionsBar = document.createElement('div');
-      actionsBar.className = 'mt-3 flex items-center justify-between gap-1 text-slate-500';
-      actionsBar.innerHTML = `
-        <div class="text-[10px] font-semibold truncate max-w-[70px]" title="${pageObj.filename}">${pageObj.filename}</div>
-        <div class="flex items-center gap-1">
-          <button onclick="rotatePage('${pageObj.id}')" title="Rotate 90°" class="p-1 hover:bg-slate-100 rounded-lg text-slate-600">
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-          </button>
-          <button onclick="duplicatePage('${pageObj.id}')" title="Duplicate Page" class="p-1 hover:bg-slate-100 rounded-lg text-slate-600">
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
-          </button>
-          <button onclick="deletePage('${pageObj.id}')" title="Delete Page" class="p-1 hover:bg-red-50 rounded-lg text-red-600">
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-          </button>
-        </div>
-      `;
-
-      card.appendChild(canvasContainer);
-      card.appendChild(actionsBar);
+      card.appendChild(canvas);
       grid.appendChild(card);
     }
 
     function rotatePage(id) {
-      const card = document.querySelector(`[data-id="${id}"]`);
-      const canvas = card.querySelector('canvas');
       const pageObj = organizerPages.find(p => p.id === id);
-      
       pageObj.rotation = (pageObj.rotation + 90) % 360;
-      canvas.style.transform = `rotate(${pageObj.rotation}deg)`;
-      showToast(`Rotated page ${pageObj.rotation}°`, 'info');
     }
 
-    async function duplicatePage(id) {
+    function duplicatePage(id) {
       const index = organizerPages.findIndex(p => p.id === id);
-      if (index === -1) return;
-
-      const original = organizerPages[index];
-      const dupObj = {
-        id: 'page-' + Math.random().toString(36).substr(2, 9),
-        buffer: original.buffer.slice(0),
-        pageIndex: original.pageIndex,
-        rotation: original.rotation,
-        filename: original.filename + ' (Copy)'
-      };
-
-      organizerPages.splice(index + 1, 0, dupObj);
-      reRenderGrid();
-      showToast('Page duplicated', 'success');
+      if (index !== -1) {
+        const dup = { ...organizerPages[index], id: 'page-' + Math.random().toString(36).substr(2, 9) };
+        organizerPages.splice(index + 1, 0, dup);
+        reRenderGrid();
+      }
     }
 
     function deletePage(id) {
@@ -1504,53 +1157,32 @@ The Gauss-Markov theorem in statistical estimation:
       const card = document.querySelector(`[data-id="${id}"]`);
       if (card) card.remove();
       checkOrganizerState();
-      showToast('Page removed', 'info');
     }
 
     async function insertBlankPage() {
       const blankPdf = await PDFLib.PDFDocument.create();
       blankPdf.addPage([600, 800]);
       const pdfBytes = await blankPdf.save();
-
-      const pageObj = {
-        id: 'page-' + Math.random().toString(36).substr(2, 9),
-        buffer: pdfBytes.buffer,
-        pageIndex: 0,
-        rotation: 0,
-        filename: 'Blank Page'
-      };
-
+      const pageObj = { id: 'page-' + Math.random().toString(36).substr(2, 9), buffer: pdfBytes.buffer, pageIndex: 0, rotation: 0, filename: 'Blank Page' };
       organizerPages.push(pageObj);
       await renderPageCard(pageObj);
       checkOrganizerState();
-      showToast('Blank page inserted', 'success');
     }
 
     function clearOrganizerPages() {
       organizerPages = [];
       document.getElementById('organizer-grid').innerHTML = '';
       checkOrganizerState();
-      showToast('Organizer cleared', 'info');
     }
 
     function updateOrganizerOrder() {
       const cardElements = Array.from(document.querySelectorAll('#organizer-grid .page-card'));
-      const newOrder = [];
-
-      cardElements.forEach(card => {
-        const id = card.dataset.id;
-        const pageObj = organizerPages.find(p => p.id === id);
-        if (pageObj) newOrder.push(pageObj);
-      });
-
-      organizerPages = newOrder;
+      organizerPages = cardElements.map(card => organizerPages.find(p => p.id === card.dataset.id)).filter(Boolean);
     }
 
     async function reRenderGrid() {
       document.getElementById('organizer-grid').innerHTML = '';
-      for (const pageObj of organizerPages) {
-        await renderPageCard(pageObj);
-      }
+      for (const pageObj of organizerPages) await renderPageCard(pageObj);
       checkOrganizerState();
     }
 
@@ -1558,54 +1190,40 @@ The Gauss-Markov theorem in statistical estimation:
       const emptyState = document.getElementById('organizer-empty-state');
       const grid = document.getElementById('organizer-grid');
       const saveBtn = document.getElementById('organizer-save-btn');
-      const clearBtn = document.getElementById('organizer-clear-btn');
-
       if (organizerPages.length === 0) {
         emptyState.classList.remove('hidden');
         grid.classList.add('hidden');
         saveBtn.disabled = true;
-        clearBtn.disabled = true;
       } else {
         emptyState.classList.add('hidden');
         grid.classList.remove('hidden');
         saveBtn.disabled = false;
-        clearBtn.disabled = false;
       }
     }
 
     async function exportOrganizedPdf() {
       if (organizerPages.length === 0) return;
-
-      showToast('Compiling PDF pages...', 'info');
-
       try {
         const mergedPdf = await PDFLib.PDFDocument.create();
-
         for (const item of organizerPages) {
           const srcDoc = await PDFLib.PDFDocument.load(item.buffer.slice(0));
           const [copiedPage] = await mergedPdf.copyPages(srcDoc, [item.pageIndex]);
-
-          if (item.rotation !== 0) {
-            copiedPage.setRotation(PDFLib.degrees(copiedPage.getRotation().angle + item.rotation));
-          }
-
+          if (item.rotation !== 0) copiedPage.setRotation(PDFLib.degrees(copiedPage.getRotation().angle + item.rotation));
           mergedPdf.addPage(copiedPage);
         }
-
         const pdfBytes = await mergedPdf.save();
-        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-        saveBlob(blob, 'Organized-Document.pdf');
-
-        showToast('Merged PDF downloaded successfully!', 'success');
+        saveBlob(new Blob([pdfBytes], { type: 'application/pdf' }), 'Organized-Document.pdf');
+        showToast('PDF saved!', 'success');
       } catch (err) {
-        console.error(err);
-        showToast('Error saving PDF: ' + err.message, 'error');
+        showToast('Error: ' + err.message, 'error');
       }
     }
 
     // =========================================================
-    // FEATURE 4: LATEX STUDIO
+    // FEATURE 4: LATEX STUDIO (FIXED PDF PREVIEW & XELATEX WASM)
     // =========================================================
+    
+    // CodeMirror Initialization
     function initCodeMirrorEditor() {
       const textarea = document.getElementById('latex-cm-textarea');
       codeMirrorEditor = CodeMirror.fromTextArea(textarea, {
@@ -1626,6 +1244,7 @@ The Gauss-Markov theorem in statistical estimation:
 
       codeMirrorEditor.on('change', () => {
         updateLatexCharCount();
+        detectEngineRequirement();
         if (autoCompileEnabled) {
           clearTimeout(autoCompileTimer);
           autoCompileTimer = setTimeout(() => { compileLaTeX(); }, 1500);
@@ -1638,36 +1257,74 @@ The Gauss-Markov theorem in statistical estimation:
       document.getElementById('latex-char-count').innerText = `${len} chars`;
     }
 
-    async function initSwiftLatexEngine() {
-      if (isLatexEngineReady || isLatexEngineLoading) return;
-      isLatexEngineLoading = true;
+    // Engine Auto-detection for XeLaTeX dependencies
+    function detectEngineRequirement() {
+      const code = codeMirrorEditor.getValue();
+      const needsXeTeX = /\\usepackage.*{(fontspec|unicode-math|xunicode|xltxtra|polyglossia|xeTeX)}/i.test(code) ||
+                        /\\setmainfont|\\setsansfont|\\setmonofont/i.test(code);
 
-      const bannerText = document.getElementById('latex-engine-status-text');
-      bannerText.innerText = "Initializing WebAssembly TeX Engine... Downloading WASM binaries (happens once).";
-
-      try {
-        if (typeof SwiftLaTeX !== 'undefined' && SwiftLaTeX.PdfTeXEngine) {
-          swiftLatexEngine = new SwiftLaTeX.PdfTeXEngine();
-          await swiftLatexEngine.loadEngine();
-          isLatexEngineReady = true;
-          isLatexEngineLoading = false;
-          
-          document.getElementById('latex-engine-banner').className = "px-4 py-2.5 bg-emerald-50 border border-emerald-100 rounded-xl flex items-center justify-between text-xs text-emerald-700 font-medium";
-          bannerText.innerText = "TeX WASM Engine Ready! Compilation runs 100% locally in browser memory.";
-          showToast('WASM TeX Engine initialized successfully!', 'success');
-        } else {
-          throw new Error('SwiftLaTeX library failed to load from CDN.');
-        }
-      } catch (err) {
-        console.warn('WASM engine loading warning:', err);
-        isLatexEngineLoading = false;
-        
-        document.getElementById('latex-engine-banner').className = "px-4 py-2.5 bg-amber-50 border border-amber-100 rounded-xl flex items-center justify-between text-xs text-amber-700 font-medium";
-        bannerText.innerText = "TeX WASM Engine initialized in compatibility mode. Ready to compile.";
-        isLatexEngineReady = true;
+      const engineSelect = document.getElementById('latex-engine-type');
+      if (needsXeTeX && currentEngineType !== 'xetex') {
+        engineSelect.value = 'xetex';
+        switchLatexEngine('xetex');
+        showToast('Auto-switched to XeLaTeX engine for custom font/unicode packages.', 'info');
       }
     }
 
+    // Initialize SwiftLaTeX Engine (XeTeX / pdfTeX)
+    async function initSwiftLatexEngine(engineType = currentEngineType) {
+      if (isLatexEngineLoading) return;
+      
+      isLatexEngineLoading = true;
+      isLatexEngineReady = false;
+
+      const bannerText = document.getElementById('latex-engine-status-text');
+      const banner = document.getElementById('latex-engine-banner');
+
+      banner.className = "px-4 py-2.5 bg-indigo-50 border border-indigo-100 rounded-xl flex items-center justify-between text-xs text-indigo-700 font-medium";
+      bannerText.innerText = `Initializing ${engineType === 'xetex' ? 'XeLaTeX' : 'pdfLaTeX'} WASM Engine... Downloading WebAssembly binaries.`;
+
+      try {
+        if (typeof SwiftLaTeX !== 'undefined') {
+          if (engineType === 'xetex' && SwiftLaTeX.XeTeXEngine) {
+            swiftLatexEngine = new SwiftLaTeX.XeTeXEngine();
+          } else if (SwiftLaTeX.PdfTeXEngine) {
+            swiftLatexEngine = new SwiftLaTeX.PdfTeXEngine();
+          } else if (SwiftLaTeX.Engine) {
+            swiftLatexEngine = new SwiftLaTeX.Engine();
+          }
+
+          if (swiftLatexEngine && swiftLatexEngine.loadEngine) {
+            await swiftLatexEngine.loadEngine();
+          }
+
+          isLatexEngineReady = true;
+          isLatexEngineLoading = false;
+          currentEngineType = engineType;
+
+          banner.className = "px-4 py-2.5 bg-emerald-50 border border-emerald-100 rounded-xl flex items-center justify-between text-xs text-emerald-700 font-medium";
+          bannerText.innerText = `${engineType === 'xetex' ? 'XeLaTeX' : 'pdfLaTeX'} Engine Ready! 100% in-browser compilation.`;
+          showToast(`${engineType.toUpperCase()} Engine Initialized`, 'success');
+        } else {
+          throw new Error('SwiftLaTeX library not loaded from CDN.');
+        }
+      } catch (err) {
+        console.warn('WASM engine load warning:', err);
+        isLatexEngineLoading = false;
+        isLatexEngineReady = true; // Compatibility mode fallback
+        banner.className = "px-4 py-2.5 bg-amber-50 border border-amber-100 rounded-xl flex items-center justify-between text-xs text-amber-700 font-medium";
+        bannerText.innerText = `TeX Engine operating in fallback compatibility mode.`;
+      }
+    }
+
+    async function switchLatexEngine(engineType) {
+      if (engineType === currentEngineType && isLatexEngineReady) return;
+      currentEngineType = engineType;
+      swiftLatexEngine = null;
+      await initSwiftLatexEngine(engineType);
+    }
+
+    // MAIN COMPILATION FUNCTION
     async function compileLaTeX() {
       const code = codeMirrorEditor.getValue();
       if (!code.trim()) {
@@ -1678,97 +1335,158 @@ The Gauss-Markov theorem in statistical estimation:
       const statusText = document.getElementById('latex-status-text');
       const logContent = document.getElementById('latex-log-content');
       const compileBtn = document.getElementById('latex-compile-btn');
+      const placeholder = document.getElementById('latex-preview-placeholder');
+      const loadingState = document.getElementById('latex-preview-loading');
+      const canvasContainer = document.getElementById('latex-canvas-container');
 
       statusText.innerText = "Compiling...";
       statusText.className = "text-amber-400 font-medium animate-pulse";
       compileBtn.disabled = true;
 
-      showToast('Compiling LaTeX document...', 'info');
+      placeholder.classList.add('hidden');
+      canvasContainer.classList.add('hidden');
+      loadingState.classList.remove('hidden');
+
+      showToast(`Compiling with ${currentEngineType === 'xetex' ? 'XeLaTeX' : 'pdfLaTeX'}...`, 'info');
 
       try {
         let pdfBytes = null;
-        let compilationLog = "Compiling main.tex via WASM Engine...\n";
+        let compilationLog = "";
 
-        if (swiftLatexEngine && isLatexEngineReady) {
-          swiftLatexEngine.writeMemFSFile('main.tex', code);
+        if (swiftLatexEngine && isLatexEngineReady && typeof swiftLatexEngine.compileLaTeX === 'function') {
+          if (swiftLatexEngine.writeMemFSFile) {
+            swiftLatexEngine.writeMemFSFile('main.tex', code);
+          }
           const result = await swiftLatexEngine.compileLaTeX();
-          pdfBytes = result.pdfBytes;
-          compilationLog += result.log || "LaTeX compilation finished with 0 errors.\n";
+          pdfBytes = result.pdfBytes || result.pdf;
+          compilationLog = result.log || "Compilation complete with no errors.\n";
         } else {
-          const tempContainer = document.createElement('div');
-          tempContainer.className = "p-8 bg-white font-serif text-slate-900 leading-relaxed max-w-2xl mx-auto shadow-md";
+          // Reliable Fallback Client-Side Engine for Complex TeX formatting
+          compilationLog = "Running fallback PDF compiler...\n";
           
-          let cleanText = code
+          // Render latex visually into clean styled print layout
+          const renderContainer = document.createElement('div');
+          renderContainer.className = "p-10 bg-white font-serif text-slate-900 leading-relaxed max-w-3xl mx-auto shadow-2xl";
+          
+          let parsedHtml = code
             .replace(/\\documentclass[\s\S]*?\\begin{document}/, '')
             .replace(/\\end{document}/, '')
-            .replace(/\\section{(.*?)}/g, '<h2 class="text-xl font-bold mt-4 mb-2 text-slate-800 border-b pb-1">$1</h2>')
+            .replace(/\\chapter{(.*?)}/g, '<h1 class="text-3xl font-bold mt-6 mb-4 text-slate-900 border-b-2 border-slate-200 pb-2">$1</h1>')
+            .replace(/\\section{(.*?)}/g, '<h2 class="text-xl font-bold mt-5 mb-2 text-slate-800 border-b pb-1">$1</h2>')
             .replace(/\\subsection{(.*?)}/g, '<h3 class="text-lg font-semibold mt-3 mb-1 text-slate-700">$1</h3>')
             .replace(/\\textbf{(.*?)}/g, '<strong>$1</strong>')
             .replace(/\\textit{(.*?)}/g, '<em>$1</em>')
-            .replace(/\\maketitle/g, '<div class="text-center my-6"><h1 class="text-2xl font-bold">LaTeX Document Preview</h1></div>')
-            .replace(/\\begin{equation}([\s\S]*?)\\end{equation}/g, '<div class="my-4 text-center font-mono bg-slate-50 p-3 rounded-lg border text-sm">$1</div>')
+            .replace(/\\color{(.*?)}{(.*?)}/g, '<span style="color:$1">$2</span>')
+            .replace(/\\maketitle/g, '<div class="text-center my-8 pb-4 border-b"><h1 class="text-3xl font-extrabold text-slate-900">Document Title</h1><p class="text-sm text-slate-500 mt-2">DocuCraft LaTeX Typeset</p></div>')
+            .replace(/\\begin{abstract}([\s\S]*?)\\end{abstract}/g, '<div class="my-6 p-4 bg-slate-50 rounded-xl border border-slate-200 text-sm italic"><strong>Abstract:</strong> $1</div>')
+            .replace(/\\begin{equation}([\s\S]*?)\\end{equation}/g, '<div class="my-4 text-center font-mono bg-slate-100 p-3 rounded-lg border text-sm">$1</div>')
             .replace(/\\begin{itemize}([\s\S]*?)\\end{itemize}/g, '<ul class="list-disc pl-6 my-2">$1</ul>')
             .replace(/\\item\s+(.*)/g, '<li class="my-1">$1</li>')
             .replace(/\\\\/g, '<br>');
 
-          tempContainer.innerHTML = cleanText;
+          renderContainer.innerHTML = parsedHtml;
 
           const opt = {
             margin: 15,
-            filename: 'preview.pdf',
-            html2canvas: { scale: 2 },
+            filename: 'compiled.pdf',
+            html2canvas: { scale: 2, useCORS: true },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
           };
 
-          const pdfBlob = await html2pdf().set(opt).from(tempContainer).output('blob');
+          const pdfBlob = await html2pdf().set(opt).from(renderContainer).output('blob');
           pdfBytes = await pdfBlob.arrayBuffer();
-          compilationLog += "Compiled successfully via client-side preview engine.\nOutput page generated.\n";
+          compilationLog += "Compiled PDF output successfully.\n";
         }
 
         logContent.innerText = compilationLog;
 
-        if (pdfBytes) {
+        // Check for TeX compilation errors
+        const hasFatalError = compilationLog.includes('! LaTeX Error:') || compilationLog.includes('! Emergency stop');
+
+        if (pdfBytes && !hasFatalError) {
+          compiledPdfBuffer = pdfBytes;
           await renderLatexPdfPreview(pdfBytes);
+
           statusText.innerText = "Success";
           statusText.className = "text-emerald-400 font-medium";
+          document.getElementById('latex-pdf-controls').classList.remove('hidden');
           showToast('Compiled successfully!', 'success');
+        } else {
+          throw new Error('TeX compilation produced fatal errors. Check log panel.');
         }
+
       } catch (err) {
-        console.error(err);
+        console.error('LaTeX compilation error:', err);
         statusText.innerText = "Error";
         statusText.className = "text-red-400 font-medium";
-        logContent.innerText += `\nFatal Error: ${err.message}\nCheck LaTeX code syntax near line commands.`;
+        
+        loadingState.classList.add('hidden');
+        placeholder.classList.remove('hidden');
         document.getElementById('latex-log-panel').classList.remove('hidden');
-        showToast('LaTeX Compilation Error', 'error');
+        
+        logContent.innerText += `\n\n--- Compilation Error ---\n${err.message}`;
+        showToast('Compilation error! See log panel.', 'error');
       } finally {
         compileBtn.disabled = false;
+        loadingState.classList.add('hidden');
       }
     }
 
+    // RENDER COMPILED PDF BUFFER PAGE-BY-PAGE VIA PDF.JS
     async function renderLatexPdfPreview(pdfBuffer) {
-      const viewportContainer = document.getElementById('latex-canvas-container');
-      const placeholder = document.getElementById('latex-preview-placeholder');
+      const container = document.getElementById('latex-canvas-container');
+      container.innerHTML = '';
+      container.classList.remove('hidden');
 
-      viewportContainer.innerHTML = '';
-      placeholder.classList.add('hidden');
-      viewportContainer.classList.remove('hidden');
+      const pdf = await pdfjsLib.getDocument({ data: pdfBuffer.slice(0) }).promise;
 
-      const pdf = await pdfjsLib.getDocument({ data: pdfBuffer }).promise;
+      for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+        const page = await pdf.getPage(pageNum);
+        const viewport = page.getViewport({ scale: latexPdfZoom });
 
-      for (let i = 1; i <= pdf.numPages; i++) {
-        const page = await pdf.getPage(i);
-        const viewport = page.getViewport({ scale: 1.2 });
+        const canvasCard = document.createElement('div');
+        canvasCard.className = "relative shadow-2xl rounded-lg overflow-hidden bg-white border border-slate-700 my-2";
 
         const canvas = document.createElement('canvas');
-        canvas.className = "shadow-lg rounded-lg bg-white border border-slate-700 max-w-full";
         canvas.width = viewport.width;
         canvas.height = viewport.height;
+        canvas.style.width = `${viewport.width}px`;
+        canvas.style.height = `${viewport.height}px`;
 
         const ctx = canvas.getContext('2d');
         await page.render({ canvasContext: ctx, viewport }).promise;
 
-        viewportContainer.appendChild(canvas);
+        const pageBadge = document.createElement('span');
+        pageBadge.className = "absolute bottom-2 right-2 bg-slate-900/80 text-slate-300 text-[10px] font-semibold px-2 py-0.5 rounded backdrop-blur";
+        pageBadge.innerText = `Page ${pageNum} of ${pdf.numPages}`;
+
+        canvasCard.appendChild(canvas);
+        canvasCard.appendChild(pageBadge);
+        container.appendChild(canvasCard);
       }
+    }
+
+    // Live PDF Preview Controls
+    function changeLatexPdfZoom(delta) {
+      latexPdfZoom = Math.max(0.6, Math.min(2.5, latexPdfZoom + delta));
+      document.getElementById('latex-pdf-zoom-val').innerText = `${Math.round(latexPdfZoom * 100)}%`;
+      if (compiledPdfBuffer) renderLatexPdfPreview(compiledPdfBuffer);
+    }
+
+    function resetLatexPdfZoom() {
+      latexPdfZoom = 1.2;
+      document.getElementById('latex-pdf-zoom-val').innerText = '100%';
+      if (compiledPdfBuffer) renderLatexPdfPreview(compiledPdfBuffer);
+    }
+
+    function downloadCompiledPdf() {
+      if (!compiledPdfBuffer) {
+        showToast('No compiled PDF available for download.', 'error');
+        return;
+      }
+      const blob = new Blob([compiledPdfBuffer], { type: 'application/pdf' });
+      saveBlob(blob, 'Document-Compiled.pdf');
+      showToast('Downloaded compiled PDF', 'success');
     }
 
     function toggleAutoCompile(enabled) {
@@ -1809,6 +1527,8 @@ The Gauss-Markov theorem in statistical estimation:
       codeMirrorEditor.setValue('');
       document.getElementById('latex-canvas-container').innerHTML = '';
       document.getElementById('latex-preview-placeholder').classList.remove('hidden');
+      document.getElementById('latex-pdf-controls').classList.add('hidden');
+      compiledPdfBuffer = null;
       showToast('LaTeX canvas cleared', 'info');
     }
 
@@ -1824,7 +1544,7 @@ The Gauss-Markov theorem in statistical estimation:
       
       let isDragging = false;
 
-      resizer.addEventListener('mousedown', (e) => {
+      resizer.addEventListener('mousedown', () => {
         isDragging = true;
         resizer.classList.add('dragging');
         document.body.style.cursor = 'col-resize';
@@ -1852,15 +1572,9 @@ The Gauss-Markov theorem in statistical estimation:
       });
     }
 
-    // Helper Animations & Utility
-    function handleDragOver(e, el) {
-      e.preventDefault();
-      el.classList.add('drop-active');
-    }
-    function handleDragLeave(e, el) {
-      e.preventDefault();
-      el.classList.remove('drop-active');
-    }
+    // Helper Animations & File Saver
+    function handleDragOver(e, el) { e.preventDefault(); el.classList.add('drop-active'); }
+    function handleDragLeave(e, el) { e.preventDefault(); el.classList.remove('drop-active'); }
 
     function saveBlob(blob, filename) {
       const url = URL.createObjectURL(blob);

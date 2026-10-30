@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DocuCraft - Free PDF & Document Studio</title>
+  
+  <!-- CSS Framework & Quill Editor Styles -->
+  <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+  
+  <!-- Open Source Client Libraries -->
+  <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
+  <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://unpkg.com/docx@8.5.0/build/index.umd.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --text-muted: #64748b;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); display: flex; flex-direction: column; height: 100vh; }
+
+    header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; }
+    header h1 { font-size: 1.25rem; font-weight: 700; color: var(--primary); }
+
+    nav { display: flex; gap: 8px; }
+    .tab-btn { background: transparent; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 600; color: var(--text-muted); cursor: pointer; transition: 0.2s; }
+    .tab-btn:hover { background: #f1f5f9; color: var(--text); }
+    .tab-btn.active { background: #eff6ff; color: var(--primary); }
+
+    main { flex: 1; padding: 24px; overflow-y: auto; max-width: 1200px; margin: 0 auto; width: 100%; }
+    .tab-content { display: none; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; }
+    .tab-content.active { display: block; }
+
+    .drop-zone { border: 2px dashed #cbd5e1; border-radius: 8px; padding: 32px; text-align: center; cursor: pointer; transition: 0.2s; margin-bottom: 20px; }
+    .drop-zone:hover { border-color: var(--primary); background: #eff6ff; }
+
+    .btn { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 6px; font-weight: 600; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; gap: 8px; }
+    .btn:hover { background: var(--primary-hover); }
+    .btn:disabled { background: #94a3b8; cursor: not-allowed; }
+    .btn-secondary { background: #e2e8f0; color: var(--text); }
+    .btn-secondary:hover { background: #cbd5e1; }
+
+    .action-bar { display: flex; gap: 12px; margin-top: 16px; flex-wrap: wrap; }
+    #editor-wrapper { height: 500px; background: #fff; margin-bottom: 20px; }
+    
+    .status-msg { margin-top: 12px; font-size: 0.9rem; color: var(--text-muted); }
+    
+    /* Page Studio List Styles */
+    .page-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 16px; margin-top: 20px; }
+    .page-card { border: 1px solid var(--border); border-radius: 6px; padding: 8px; text-align: center; background: #fff; position: relative; }
+    .page-card canvas { width: 100%; height: auto; border: 1px solid #f1f5f9; }
+    .page-card .remove-btn { position: absolute; top: 4px; right: 4px; background: #ef4444; color: white; border: none; border-radius: 50%; width: 22px; height: 22px; cursor: pointer; font-size: 12px; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>DocuCraft Studio</h1>
+    <nav>
+      <button class="tab-btn active" onclick="switchTab('flow-editor')">Free-Flow Editor</button>
+      <button class="tab-btn" onclick="switchTab('pdf-converter')">PDF to DOCX</button>
+      <button class="tab-btn" onclick="switchTab('page-studio')">Page Organizer</button>
+    </nav>
+  </header>
+
+  <main>
+    <!-- TAB 1: FREE-FLOW TEXT EDITOR -->
+    <section id="flow-editor" class="tab-content active">
+      <h2>Free-Flow Document Editor</h2>
+      <p class="status-msg" style="margin-bottom: 16px;">Create, edit, or import DOCX files with full formatting controls. Export directly to PDF or DOCX.</p>
+      
+      <div style="margin-bottom: 16px; display: flex; gap: 10px;">
+        <input type="file" id="docxImportInput" accept=".docx" style="display:none" onchange="importDocx(event)">
+        <button class="btn btn-secondary" onclick="document.getElementById('docxImportInput').click()">Import DOCX File</button>
+      </div>
+
+      <div id="editor-wrapper"></div>
+
+      <div class="action-bar">
+        <button class="btn" onclick="exportRichText('pdf')">Export as PDF</button>
+        <button class="btn btn-secondary" onclick="exportRichText('docx')">Export as DOCX</button>
+      </div>
+    </section>
+
+    <!-- TAB 2: PDF TO DOCX CONVERTER -->
+    <section id="pdf-converter" class="tab-content">
+      <h2>PDF to DOCX Converter</h2>
+      <p class="status-msg" style="margin-bottom: 20px;">Converts native PDF text and layouts directly into an editable Word document while preserving your original file name.</p>
+      
+      <div class="drop-zone" onclick="document.getElementById('pdfConvInput').click()">
+        <p id="pdfConvLabel">Click or drop your PDF file here</p>
+        <input type="file" id="pdfConvInput" accept="application/pdf" style="display:none" onchange="handleConvFileSelect(event)">
+      </div>
+
+      <button id="convBtn" class="btn" onclick="convertPdfToDocx()" disabled>Convert & Download DOCX</button>
+      <div id="convStatus" class="status-msg"></div>
+    </section>
+
+    <!-- TAB 3: PAGE ORGANIZER & MERGER -->
+    <section id="page-studio" class="tab-content">
+      <h2>PDF Page Organizer & Merger</h2>
+      <p class="status-msg" style="margin-bottom: 20px;">Upload one or multiple PDFs to rearrange, remove, or merge pages into a single document.</p>
+
+      <div class="drop-zone" onclick="document.getElementById('studioPdfInput').click()">
+        <p>Click to select PDF files to load</p>
+        <input type="file" id="studioPdfInput" accept="application/pdf" multiple style="display:none" onchange="loadStudioPdfs(event)">
+      </div>
+
+      <div id="pageContainer" class="page-list"></div>
+
+      <div class="action-bar" style="margin-top: 24px;">
+        <button id="mergeBtn" class="btn" onclick="exportOrganizedPdf()" disabled>Save & Download Merged PDF</button>
+      </div>
+      <div id="studioStatus" class="status-msg"></div>
+    </section>
+  </main>
+
+  <script>
+    // Initialize PDF.js worker
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+    // 1. Navigation Logic
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+      
+      event.target.classList.add('active');
+      document.getElementById(tabId).classList.add('active');
+    }
+
+    // 2. Quill Rich Text Editor Setup
+    const quill = new Quill('#editor-wrapper', {
+      theme: 'snow',
+      modules: {
+        toolbar: [
+          [{ 'font': [] }, { 'size': ['small', false, 'large', 'huge'] }],
+          ['bold', 'italic', 'underline', 'strike'],
+          [{ 'color': [] }, { 'background': [] }],
+          [{ 'align': [] }, { 'list': 'ordered'}, { 'list': 'bullet' }],
+          ['clean']
+        ]
+      }
+    });
+
+    // Import .docx into Quill Editor
+    async function importDocx(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      
+      const arrayBuffer = await file.arrayBuffer();
+      const result = await mammoth.convertToHtml({ arrayBuffer });
+      quill.clipboard.dangerouslyPasteHTML(result.value);
+    }
+
+    // Export Quill content to PDF or DOCX
+    async function exportRichText(format) {
+      if (format === 'pdf') {
+        const element = quill.root;
+        const opt = {
+          margin: 10,
+          filename: 'edited-document.pdf',
+          html2canvas: { scale: 2 },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+        html2pdf().set(opt).from(element).save();
+      } else if (format === 'docx') {
+        const textContent = quill.getText();
+        const doc = new docx.Document({
+          sections: [{
+            properties: {},
+            children: textContent.split('\n').map(line => new docx.Paragraph({
+              children: [new docx.TextRun(line)]
+            }))
+          }]
+        });
+        const blob = await docx.Packer.toBlob(doc);
+        saveBlob(blob, 'edited-document.docx');
+      }
+    }
+
+    // 3. PDF to DOCX Conversion Engine
+    let convFile = null;
+
+    function handleConvFileSelect(event) {
+      convFile = event.target.files[0];
+      if (convFile) {
+        document.getElementById('pdfConvLabel').innerText = `Selected: ${convFile.name}`;
+        document.getElementById('convBtn').disabled = false;
+      }
+    }
+
+    async function convertPdfToDocx() {
+      if (!convFile) return;
+      const status = document.getElementById('convStatus');
+      status.innerText = "Parsing PDF...";
+
+      try {
+        const arrayBuffer = await convFile.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        const paragraphs = [];
+
+        for (let i = 1; i <= pdf.numPages; i++) {
+          status.innerText = `Extracting page ${i} of ${pdf.numPages}...`;
+          const page = await pdf.getPage(i);
+          const textContent = await page.getTextContent();
+          
+          let lastY = null;
+          let currentLine = "";
+
+          textContent.items.forEach(item => {
+            const y = item.transform[5];
+            if (lastY !== null && Math.abs(y - lastY) > 4) {
+              paragraphs.push(new docx.Paragraph({ children: [new docx.TextRun(currentLine)] }));
+              currentLine = "";
+            }
+            currentLine += item.str + " ";
+            lastY = y;
+          });
+          if (currentLine) {
+            paragraphs.push(new docx.Paragraph({ children: [new docx.TextRun(currentLine)] }));
+          }
+          if (i < pdf.numPages) {
+            paragraphs.push(new docx.Paragraph({ children: [new docx.PageBreak()] }));
+          }
+        }
+
+        status.innerText = "Building DOCX file...";
+        const doc = new docx.Document({ sections: [{ children: paragraphs }] });
+        const blob = await docx.Packer.toBlob(doc);
+        
+        // Retain original filename, swap extension to .docx
+        const outputName = convFile.name.replace(/\.pdf$/i, '') + '.docx';
+        saveBlob(blob, outputName);
+        status.innerText = `Successfully exported: ${outputName}`;
+      } catch (err) {
+        status.innerText = "Error during conversion: " + err.message;
+      }
+    }
+
+    // 4. Page Organizer & Merger Engine
+    let loadedPages = []; // Stores { pdfBytes, pageIndex, canvas }
+
+    async function loadStudioPdfs(event) {
+      const files = Array.from(event.target.files);
+      const container = document.getElementById('pageContainer');
+      const status = document.getElementById('studioStatus');
+
+      for (const file of files) {
+        status.innerText = `Loading ${file.name}...`;
+        const buffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: buffer.slice(0) }).promise;
+
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const viewport = page.getViewport({ scale: 0.3 });
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          canvas.width = viewport.width;
+          canvas.height = viewport.height;
+
+          await page.render({ canvasContext: ctx, viewport }).promise;
+
+          const pageObj = { buffer, pageIndex: i - 1, canvas };
+          loadedPages.push(pageObj);
+
+          // Render Page Thumbnail Card
+          const card = document.createElement('div');
+          card.className = 'page-card';
+          card.appendChild(canvas);
+          
+          const removeBtn = document.createElement('button');
+          removeBtn.className = 'remove-btn';
+          removeBtn.innerHTML = '×';
+          removeBtn.onclick = () => {
+            loadedPages = loadedPages.filter(p => p !== pageObj);
+            card.remove();
+            if (loadedPages.length === 0) document.getElementById('mergeBtn').disabled = true;
+          };
+
+          card.appendChild(removeBtn);
+          container.appendChild(card);
+        }
+      }
+
+      status.innerText = "Pages loaded. Drag to reorder or click × to delete.";
+      if (loadedPages.length > 0) document.getElementById('mergeBtn').disabled = false;
+    }
+
+    async function exportOrganizedPdf() {
+      if (loadedPages.length === 0) return;
+      const status = document.getElementById('studioStatus');
+      status.innerText = "Generating merged PDF...";
+
+      const mergedPdf = await PDFLib.PDFDocument.create();
+
+      for (const item of loadedPages) {
+        const srcDoc = await PDFLib.PDFDocument.load(item.buffer);
+        const [copiedPage] = await mergedPdf.copyPages(srcDoc, [item.pageIndex]);
+        mergedPdf.addPage(copiedPage);
+      }
+
+      const mergedBytes = await mergedPdf.save();
+      const blob = new Blob([mergedBytes], { type: 'application/pdf' });
+      saveBlob(blob, 'merged-document.pdf');
+      status.innerText = "Merged PDF downloaded successfully.";
+    }
+
+    // Helper Utility: Save Blob to Disk
+    function saveBlob(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+  </script>
+</body>
+</html>

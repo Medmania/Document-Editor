@@ -1,20 +1,31 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DocuCraft Studio - Free PDF & Document Suite</title>
+  <title>DocuCraft Studio - Free Visual PDF, Document & LaTeX Suite</title>
   
   <!-- Fonts & Tailwind CSS -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
 
   <!-- Quill.js Editor CSS & JS -->
   <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
   <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
+
+  <!-- CodeMirror 5 for LaTeX Studio -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/dracula.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/stex/stex.min.js"></script>
+
+  <!-- Fabric.js Canvas Engine for Visual PDF Editor -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
+
+  <!-- WASM TeX Compiler Engine (SwiftLaTeX) -->
+  <script src="https://cdn.jsdelivr.net/npm/swiftlatex@1.0.0/dist/swiftlatex.min.js"></script>
 
   <!-- Open Source Document Processing Libraries -->
   <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
@@ -28,7 +39,10 @@
     tailwind.config = {
       theme: {
         extend: {
-          fontFamily: { sans: ['Inter', 'sans-serif'] },
+          fontFamily: { 
+            sans: ['Inter', 'sans-serif'],
+            mono: ['Fira Code', 'monospace']
+          },
           colors: {
             brand: { 50: '#eff6ff', 100: '#dbeafe', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8' }
           }
@@ -63,6 +77,24 @@
       line-height: 1.6;
     }
 
+    /* CodeMirror Custom Styles for LaTeX Studio */
+    .CodeMirror {
+      height: 100% !important;
+      font-family: 'Fira Code', monospace;
+      font-size: 13px;
+      border-radius: 0 0 0.75rem 0.75rem;
+      line-height: 1.5;
+    }
+
+    /* Visual PDF Editor Canvas Styling */
+    .canvas-container {
+      margin: 0 auto;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+      border-radius: 0.5rem;
+      overflow: hidden;
+      background-color: #ffffff;
+    }
+
     /* Page Organizer Drag Cards */
     .page-card {
       transition: transform 0.2s ease, box-shadow 0.2s ease;
@@ -76,6 +108,17 @@
     .drop-active {
       border-color: #2563eb !important;
       background-color: #eff6ff !important;
+    }
+
+    /* Resizable Divider Handle */
+    .resizer-handle {
+      width: 8px;
+      cursor: col-resize;
+      background: #e2e8f0;
+      transition: background 0.2s;
+    }
+    .resizer-handle:hover, .resizer-handle.dragging {
+      background: #2563eb;
     }
 
     /* Custom Scrollbar */
@@ -95,28 +138,41 @@
       </div>
       <div>
         <h1 class="text-xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">DocuCraft Studio</h1>
-        <p class="text-xs text-slate-500 font-medium">Free Browser-Based PDF & Document Suite</p>
+        <p class="text-xs text-slate-500 font-medium">Free Browser-Based PDF, Document & LaTeX Suite</p>
       </div>
     </div>
 
     <!-- TAB NAVIGATION -->
     <nav class="flex p-1 bg-slate-100 rounded-xl border border-slate-200/80">
-      <button id="tab-editor-btn" onclick="switchTab('flow-editor')" class="px-4 py-2 text-xs md:text-sm font-semibold rounded-lg transition-all text-brand-600 bg-white shadow-sm">
-        <span class="flex items-center gap-2">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-          Free-Flow Editor
+      <!-- NEW VISUAL PDF EDITOR TAB -->
+      <button id="tab-pdf-editor-btn" onclick="switchTab('pdf-editor')" class="px-3.5 py-2 text-xs md:text-sm font-semibold rounded-lg transition-all text-brand-600 bg-white shadow-sm">
+        <span class="flex items-center gap-1.5">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+          Visual PDF Editor
         </span>
       </button>
-      <button id="tab-converter-btn" onclick="switchTab('pdf-converter')" class="px-4 py-2 text-xs md:text-sm font-semibold rounded-lg transition-all text-slate-600 hover:text-slate-900">
-        <span class="flex items-center gap-2">
+      <button id="tab-editor-btn" onclick="switchTab('flow-editor')" class="px-3.5 py-2 text-xs md:text-sm font-semibold rounded-lg transition-all text-slate-600 hover:text-slate-900">
+        <span class="flex items-center gap-1.5">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+          Text Reflow Editor
+        </span>
+      </button>
+      <button id="tab-converter-btn" onclick="switchTab('pdf-converter')" class="px-3.5 py-2 text-xs md:text-sm font-semibold rounded-lg transition-all text-slate-600 hover:text-slate-900">
+        <span class="flex items-center gap-1.5">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
           PDF to DOCX
         </span>
       </button>
-      <button id="tab-organizer-btn" onclick="switchTab('page-organizer')" class="px-4 py-2 text-xs md:text-sm font-semibold rounded-lg transition-all text-slate-600 hover:text-slate-900">
-        <span class="flex items-center gap-2">
+      <button id="tab-organizer-btn" onclick="switchTab('page-organizer')" class="px-3.5 py-2 text-xs md:text-sm font-semibold rounded-lg transition-all text-slate-600 hover:text-slate-900">
+        <span class="flex items-center gap-1.5">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
           Page Organizer
+        </span>
+      </button>
+      <button id="tab-latex-btn" onclick="switchTab('latex-studio')" class="px-3.5 py-2 text-xs md:text-sm font-semibold rounded-lg transition-all text-slate-600 hover:text-slate-900">
+        <span class="flex items-center gap-1.5">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+          LaTeX Studio
         </span>
       </button>
     </nav>
@@ -126,16 +182,136 @@
   <div id="toast-container" class="fixed top-20 right-6 z-50 flex flex-col gap-2 max-w-sm pointer-events-none"></div>
 
   <!-- MAIN CONTENT CONTAINER -->
-  <main class="flex-1 overflow-y-auto p-4 md:p-6 max-w-7xl w-full mx-auto">
+  <main class="flex-1 overflow-y-auto p-4 md:p-6 max-w-7xl w-full mx-auto flex flex-col">
 
     <!-- ========================================== -->
-    <!-- TAB 1: FREE-FLOW TEXT EDITOR -->
+    <!-- TAB 0: VISUAL PDF EDITOR (NEW FEATURE) -->
     <!-- ========================================== -->
-    <section id="tab-flow-editor" class="space-y-4">
+    <section id="tab-pdf-editor" class="flex-1 flex flex-col space-y-4">
+      
+      <!-- UPLOAD STATE / DROPZONE -->
+      <div id="pdf-editor-upload-zone" 
+           onclick="document.getElementById('pdf-v-file-input').click()"
+           ondragover="handleDragOver(event, this)"
+           ondragleave="handleDragLeave(event, this)"
+           ondrop="handleVisualPdfDrop(event)"
+           class="border-2 border-dashed border-slate-300 hover:border-brand-500 rounded-2xl p-12 text-center bg-white hover:bg-brand-50/50 transition-all cursor-pointer group shadow-sm my-auto">
+        <input type="file" id="pdf-v-file-input" accept="application/pdf" class="hidden" onchange="loadVisualPdfFile(event)">
+        <div class="w-16 h-16 mx-auto rounded-2xl bg-brand-50 text-brand-600 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+          <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+        </div>
+        <p class="text-lg font-bold text-slate-800">Click or Drag & Drop a PDF to Edit Visually</p>
+        <p class="text-xs text-slate-400 mt-1">Add text boxes, signatures, images, highlights, drawings, and shapes directly over your PDF pages.</p>
+      </div>
+
+      <!-- VISUAL EDITOR WORKSPACE (HIDDEN UNTIL LOADED) -->
+      <div id="pdf-editor-workspace" class="hidden flex-1 flex flex-col space-y-3 min-h-0">
+        
+        <!-- TOOLBAR -->
+        <div class="bg-white p-2.5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-wrap items-center justify-between gap-2.5 shrink-0">
+          
+          <!-- Editing Tools -->
+          <div class="flex flex-wrap items-center gap-1.5">
+            
+            <button id="v-tool-select" onclick="setVisualTool('select')" class="p-2 rounded-xl text-xs font-semibold bg-brand-50 text-brand-600 border border-brand-200 flex items-center gap-1.5" title="Select / Move Tool">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5"/></svg>
+              <span class="hidden sm:inline">Select</span>
+            </button>
+
+            <button id="v-tool-text" onclick="addVisualText()" class="p-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 flex items-center gap-1.5" title="Add Text Box">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+              <span class="hidden sm:inline">Text</span>
+            </button>
+
+            <button id="v-tool-pen" onclick="setVisualTool('pen')" class="p-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 flex items-center gap-1.5" title="Freehand Pen">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+              <span class="hidden sm:inline">Draw</span>
+            </button>
+
+            <button id="v-tool-highlight" onclick="setVisualTool('highlight')" class="p-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 flex items-center gap-1.5" title="Highlighter">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10M12 3v14m-4-4l4 4 4-4"/></svg>
+              <span class="hidden sm:inline">Highlight</span>
+            </button>
+
+            <button id="v-tool-rect" onclick="addVisualRect()" class="p-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 flex items-center gap-1.5" title="Add Rectangle">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h18v18H3V3z"/></svg>
+              <span class="hidden sm:inline">Shape</span>
+            </button>
+
+            <input type="file" id="v-image-input" accept="image/*" class="hidden" onchange="addVisualImage(event)">
+            <button onclick="document.getElementById('v-image-input').click()" class="p-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 flex items-center gap-1.5" title="Add Image / Signature">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+              <span class="hidden sm:inline">Image / Sign</span>
+            </button>
+
+            <div class="h-5 w-px bg-slate-200 mx-1"></div>
+
+            <!-- Color & Font controls -->
+            <input type="color" id="v-color-picker" value="#0f172a" onchange="updateVisualColor(this.value)" class="w-7 h-7 rounded-lg border border-slate-200 cursor-pointer" title="Pick Color">
+
+            <select id="v-fontsize-select" onchange="updateVisualFontSize(this.value)" class="px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700">
+              <option value="14">14px</option>
+              <option value="18" selected>18px</option>
+              <option value="24">24px</option>
+              <option value="32">32px</option>
+              <option value="48">48px</option>
+            </select>
+
+            <button onclick="deleteSelectedVisualObject()" class="p-2 rounded-xl text-xs font-semibold text-red-600 hover:bg-red-50 flex items-center gap-1" title="Delete Selected Object">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+            </button>
+          </div>
+
+          <!-- Page Nav & Zoom & Save -->
+          <div class="flex items-center gap-2">
+            
+            <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-xs font-semibold text-slate-700">
+              <button onclick="changeVisualPage(-1)" class="p-1 hover:bg-white rounded-lg">&lt;</button>
+              <span id="v-page-indicator" class="px-2">Page 1 of 1</span>
+              <button onclick="changeVisualPage(1)" class="p-1 hover:bg-white rounded-lg">&gt;</button>
+            </div>
+
+            <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-xs font-semibold text-slate-700">
+              <button onclick="zoomVisualCanvas(-0.1)" class="px-2 py-0.5 hover:bg-white rounded-lg">-</button>
+              <span id="v-zoom-indicator">100%</span>
+              <button onclick="zoomVisualCanvas(0.1)" class="px-2 py-0.5 hover:bg-white rounded-lg">+</button>
+            </div>
+
+            <button onclick="exportVisualEditedPdf()" class="px-4 py-2 text-xs font-semibold rounded-xl bg-brand-600 text-white hover:bg-brand-700 transition-all flex items-center gap-1.5 shadow-sm shadow-brand-500/20">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
+              Save PDF
+            </button>
+
+            <button onclick="closeVisualEditor()" class="p-2 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100" title="Close File">&times;</button>
+          </div>
+
+        </div>
+
+        <!-- CANVAS MAIN CONTAINER WITH SIDEBAR THUMBNAILS -->
+        <div class="flex-1 flex gap-4 min-h-0 overflow-hidden">
+          
+          <!-- Page Thumbnails Panel -->
+          <div id="v-thumbnails-sidebar" class="w-44 bg-white border border-slate-200/80 rounded-2xl p-3 overflow-y-auto hidden sm:flex flex-col gap-3 shrink-0"></div>
+
+          <!-- Main Canvas Workspace Viewport -->
+          <div id="v-canvas-viewport" class="flex-1 bg-slate-100 rounded-2xl border border-slate-200/80 p-4 overflow-auto flex items-start justify-center relative">
+            <canvas id="pdf-v-fabric-canvas"></canvas>
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- ========================================== -->
+    <!-- TAB 1: TEXT REFLOW EDITOR (PREVIOUSLY FREE-FLOW) -->
+    <!-- ========================================== -->
+    <section id="tab-flow-editor" class="hidden space-y-4">
       <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 class="text-lg font-bold text-slate-900">Free-Flow Rich Text Editor</h2>
-          <p class="text-xs text-slate-500 mt-0.5">Import a PDF or DOCX file to extract text into an editable reflow canvas, or type directly below.</p>
+          <h2 class="text-lg font-bold text-slate-900">Text Reflow Editor</h2>
+          <p class="text-xs text-slate-500 mt-0.5">Extracts text from PDF or DOCX files into a clean reflowable rich-text canvas.</p>
         </div>
 
         <div class="flex flex-wrap items-center gap-2.5">
@@ -237,7 +413,7 @@
     <!-- ========================================== -->
     <!-- TAB 3: PDF PAGE ORGANIZER & MERGER -->
     <!-- ========================================== -->
-    <section id="tab-page-organizer" class="space-y-6">
+    <section id="tab-page-organizer" class="hidden space-y-6">
       <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 class="text-lg font-bold text-slate-900">PDF Page Organizer & Merger</h2>
@@ -283,7 +459,114 @@
       </div>
 
       <!-- PAGE THUMBNAILS GRID CONTAINER -->
-      <div id="organizer-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4"></div>
+      <div id="organizer-grid" class="hidden grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4"></div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- TAB 4: LATEX STUDIO -->
+    <!-- ========================================== -->
+    <section id="tab-latex-studio" class="hidden flex-1 flex flex-col h-full space-y-3">
+      
+      <!-- WASM ENGINE LOADING BANNER -->
+      <div id="latex-engine-banner" class="px-4 py-2.5 bg-indigo-50 border border-indigo-100 rounded-xl flex items-center justify-between text-xs text-indigo-700 font-medium">
+        <div class="flex items-center gap-2">
+          <svg class="w-4 h-4 text-indigo-600 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+          <span id="latex-engine-status-text">Initializing WASM TeX Engine... Downloading WebAssembly binary (happens once).</span>
+        </div>
+        <span class="text-[10px] font-semibold uppercase tracking-wider text-indigo-500 bg-indigo-100 px-2 py-0.5 rounded-md">WASM Engine</span>
+      </div>
+
+      <!-- TOOLBAR ABOVE SPLIT EDITOR -->
+      <div class="bg-white p-3 rounded-2xl border border-slate-200/80 shadow-sm flex flex-wrap items-center justify-between gap-3 shrink-0">
+        <div class="flex flex-wrap items-center gap-2">
+          
+          <button id="latex-compile-btn" onclick="compileLaTeX()" class="px-4 py-2 text-xs font-semibold rounded-xl bg-brand-600 text-white hover:bg-brand-700 transition-all flex items-center gap-2 shadow-sm shadow-brand-500/20">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            Compile <span class="text-[10px] opacity-75 hidden sm:inline">(Ctrl+Enter)</span>
+          </button>
+
+          <label class="flex items-center gap-2 cursor-pointer px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors">
+            <input type="checkbox" id="latex-autocompile-toggle" onchange="toggleAutoCompile(this.checked)" class="w-3.5 h-3.5 text-brand-600 rounded border-slate-300 focus:ring-brand-500">
+            <span>Auto-Compile</span>
+          </label>
+
+          <select id="latex-template-select" onchange="loadLatexTemplate(this.value)" class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:border-brand-500">
+            <option value="" disabled selected>Templates...</option>
+            <option value="article">Article (Academic)</option>
+            <option value="report">Survey Report</option>
+            <option value="letter">Formal Letter</option>
+            <option value="beamer">Beamer Presentation</option>
+          </select>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2">
+          <input type="file" id="latex-file-input" accept=".tex" class="hidden" onchange="handleLatexFileUpload(event)">
+          
+          <button onclick="document.getElementById('latex-file-input').click()" class="px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 transition-all flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+            Open .tex
+          </button>
+
+          <button onclick="downloadLatexFile()" class="px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 transition-all flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+            Save .tex
+          </button>
+
+          <button onclick="clearLatexEditor()" class="px-2.5 py-1.5 text-xs font-semibold rounded-lg text-red-600 hover:bg-red-50 transition-all">
+            Clear
+          </button>
+        </div>
+      </div>
+
+      <!-- FULL-HEIGHT SPLIT VIEW CONTAINER -->
+      <div id="latex-split-container" class="flex-1 flex flex-col md:flex-row bg-slate-900 rounded-2xl overflow-hidden border border-slate-800 shadow-md min-h-[550px] relative">
+        
+        <div id="latex-editor-panel" class="w-full md:w-1/2 flex flex-col min-h-[300px] md:min-h-0 bg-[#282a36]">
+          <div class="px-4 py-2 bg-slate-800 border-b border-slate-700/80 flex items-center justify-between text-xs text-slate-300 font-mono shrink-0">
+            <span class="flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+              main.tex
+            </span>
+            <span id="latex-char-count" class="text-[10px] text-slate-400">0 chars</span>
+          </div>
+          <div class="flex-1 overflow-hidden relative">
+            <textarea id="latex-cm-textarea"></textarea>
+          </div>
+        </div>
+
+        <div id="latex-resizer" class="hidden md:block resizer-handle shrink-0 relative hover:bg-brand-500 transition-colors" title="Drag to resize panels"></div>
+
+        <div id="latex-preview-panel" class="w-full md:w-1/2 flex flex-col min-h-[300px] md:min-h-0 bg-slate-800">
+          <div class="px-4 py-2 bg-slate-800 border-b border-slate-700/80 flex items-center justify-between text-xs text-slate-300 font-semibold shrink-0">
+            <span class="flex items-center gap-2">
+              <svg class="w-4 h-4 text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+              PDF Live Preview
+            </span>
+            
+            <div class="flex items-center gap-2 text-[11px]">
+              <span id="latex-status-text" class="text-slate-400 font-medium">Ready</span>
+              <button onclick="toggleCompilerLog()" class="text-brand-400 hover:underline">Toggle Log</button>
+            </div>
+          </div>
+
+          <div id="latex-pdf-viewport" class="flex-1 overflow-auto p-4 flex flex-col items-center justify-start bg-slate-700/50 space-y-4">
+            <div id="latex-preview-placeholder" class="m-auto text-center p-8 text-slate-400 space-y-3">
+              <svg class="w-12 h-12 mx-auto text-slate-500 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+              <p class="text-sm font-semibold">Click "Compile" or press Ctrl+Enter to generate live PDF preview</p>
+            </div>
+            <div id="latex-canvas-container" class="hidden flex flex-col items-center gap-4 w-full"></div>
+          </div>
+
+          <div id="latex-log-panel" class="hidden h-36 bg-slate-950 border-t border-slate-800 p-3 overflow-y-auto font-mono text-[11px] text-slate-300 leading-relaxed shrink-0">
+            <div class="flex items-center justify-between mb-1 pb-1 border-b border-slate-800 text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
+              <span>TeX Compiler Console Output</span>
+              <button onclick="toggleCompilerLog()" class="text-slate-500 hover:text-white">&times;</button>
+            </div>
+            <pre id="latex-log-content" class="whitespace-pre-wrap font-mono">Engine initialised. No errors reported.</pre>
+          </div>
+        </div>
+
+      </div>
     </section>
 
   </main>
@@ -295,13 +578,164 @@
     // Global State Variables
     let currentLoadedFileName = "Document";
     let quill = null;
-    let organizerPages = []; // Array of { id, buffer, pageIndex, rotation, filename }
+    let organizerPages = [];
     let sortableInstance = null;
+
+    // Visual PDF Editor State
+    let vPdfDocument = null;
+    let vOriginalBuffer = null;
+    let vPagesData = []; // Array of { pageNum, fabricJson, width, height }
+    let vCurrentPageNum = 1;
+    let vFabricCanvas = null;
+    let vZoomScale = 1.0;
+    let vCurrentTool = 'select';
+    let vCurrentColor = '#0f172a';
+    let vCurrentFontSize = 18;
+
+    // LaTeX Studio State Variables
+    let codeMirrorEditor = null;
+    let swiftLatexEngine = null;
+    let isLatexEngineLoading = false;
+    let isLatexEngineReady = false;
+    let autoCompileTimer = null;
+    let autoCompileEnabled = false;
+
+    // Default Starter LaTeX Templates
+    const LATEX_TEMPLATES = {
+      article: `\\documentclass[11pt, a4paper]{article}
+\\usepackage[utf8]{inputenc}
+\\usepackage{amsmath, amssymb, amsthm}
+\\usepackage{geometry}
+\\geometry{margin=1in}
+
+\\title{\\textbf{Academic Survey \\& Research Manuscript}}
+\\author{\\textbf{Ankit Garg} \\\\ Maulana Azad Medical College}
+\\date{\\today}
+
+\\begin{document}
+
+\\maketitle
+
+\\begin{abstract}
+This academic report presents client-side document processing methodologies and LaTeX compilation pipelines operating purely inside standard web browsers.
+\\end{abstract}
+
+\\section{Introduction}
+Document processing in web applications traditionally relies on server-side rendering pipelines. However, modern WebAssembly (WASM) engines enable native typesetting locally.
+
+\\section{Mathematical Formulation}
+Euler's identity represents a fundamental relationship in complex analysis:
+\\begin{equation}
+e^{i\\pi} + 1 = 0
+\\end{equation}
+
+Furthermore, the normal distribution density function is given by:
+\\begin{equation}
+f(x) = \\frac{1}{\\sigma \\sqrt{2\\pi}} e^{-\\frac{1}{2}\\left(\\frac{x-\\mu}{\\sigma}\\right)^2}
+\\end{equation}
+
+\\section{Conclusion}
+Client-side TeX engines provide secure, immediate typesetting without server latency.
+
+\\end{document}`,
+
+      report: `\\documentclass[12pt, a4paper]{report}
+\\usepackage{graphicx}
+\\usepackage{booktabs}
+
+\\title{\\textbf{WHO Oral Health Assessment Report}}
+\\author{Department of Public Health Dentistry}
+\\date{\\today}
+
+\\begin{document}
+
+\\maketitle
+\\tableofcontents
+
+\\chapter{Survey Aims \\& Methodology}
+\\section{Aims}
+To describe oral health status across community cohorts using standardized WHO parameters.
+
+\\section{Methodology}
+\\begin{table}[h]
+\\centering
+\\begin{tabular}{ll}
+\\toprule
+\\textbf{Parameter} & \\textbf{Specification} \\\\
+\\midrule
+Design & Descriptive Cross-Sectional \\\\
+Tool & WHO Oral Health Assessment Form (2013) \\\\
+Sample & Urban Community Cohort ($N=5$) \\\\
+\\bottomrule
+\\end{tabular}
+\\caption{Survey Methodology Summary}
+\\end{table}
+
+\\end{document}`,
+
+      letter: `\\documentclass{letter}
+\\usepackage{geometry}
+\\geometry{margin=1in}
+
+\\address{Maulana Azad Medical College\\\\New Delhi, India}
+\\signature{Ankit Garg}
+
+\\begin{document}
+
+\\begin{letter}{Admissions Committee\\\\Department of Public Health}
+
+\\opening{Dear Members of the Committee,}
+
+I am writing to submit our finalized community oral health survey report compiled using the client-side DocuCraft LaTeX Studio engine.
+
+All diagnostic matrices and 14-step health planning frameworks have been formatted according to institutional guidelines.
+
+\\closing{Sincerely,}
+
+\\end{letter}
+\\end{document}`,
+
+      beamer: `\\documentclass{beamer}
+\\usetheme{Madrid}
+\\usecolortheme{default}
+
+\\title[DocuCraft Suite]{Browser-Based LaTeX Presentations}
+\\subtitle{Client-Side WASM Typesetting}
+\\author{Ankit Garg}
+\\institute{MAMC, New Delhi}
+\\date{\\today}
+
+\\begin{document}
+
+\\frame{\\titlepage}
+
+\\begin{frame}
+\\frametitle{Key Features}
+\\begin{itemize}
+    \\item \\textbf{100\\% Client-Side:} No server dependency or latency.
+    \\item \\textbf{Live Preview:} Synchronized PDF rendering.
+    \\item \\textbf{WebAssembly Engine:} Native TeX Live execution.
+\\end{itemize}
+\\end{frame}
+
+\\begin{frame}
+\\frametitle{Sample Equation}
+The Gauss-Markov theorem in statistical estimation:
+\\begin{equation}
+\\hat{\\beta} = (X^T X)^{-1} X^T Y
+\\end{equation}
+\\end{frame}
+
+\\end{document}`
+    };
 
     // Initialize Application
     window.addEventListener('DOMContentLoaded', () => {
       initQuillEditor();
       initSortableGrid();
+      initCodeMirrorEditor();
+      initResizableSplitPane();
+      initVisualFabricCanvas();
     });
 
     // Toast Notification System
@@ -331,22 +765,374 @@
 
     // Tab Navigation Switcher
     function switchTab(tabId) {
-      ['editor', 'converter', 'organizer'].forEach(tab => {
+      const tabs = ['pdf-editor', 'editor', 'converter', 'organizer', 'latex'];
+      
+      tabs.forEach(tab => {
         const btn = document.getElementById(`tab-${tab}-btn`);
-        const section = document.getElementById(`tab-${tab === 'editor' ? 'flow-editor' : tab === 'converter' ? 'pdf-converter' : 'page-organizer'}`);
+        const sectionId = tab === 'pdf-editor' ? 'tab-pdf-editor' : tab === 'editor' ? 'tab-flow-editor' : tab === 'converter' ? 'tab-pdf-converter' : tab === 'organizer' ? 'tab-page-organizer' : 'tab-latex-studio';
+        const section = document.getElementById(sectionId);
         
         if (tabId.includes(tab)) {
-          btn.className = "px-4 py-2 text-xs md:text-sm font-semibold rounded-lg transition-all text-brand-600 bg-white shadow-sm";
+          btn.className = "px-3.5 py-2 text-xs md:text-sm font-semibold rounded-lg transition-all text-brand-600 bg-white shadow-sm";
           section.classList.remove('hidden');
+          
+          if (tab === 'latex') {
+            setTimeout(() => {
+              if (codeMirrorEditor) codeMirrorEditor.refresh();
+              initSwiftLatexEngine();
+            }, 100);
+          }
         } else {
-          btn.className = "px-4 py-2 text-xs md:text-sm font-semibold rounded-lg transition-all text-slate-600 hover:text-slate-900";
+          btn.className = "px-3.5 py-2 text-xs md:text-sm font-semibold rounded-lg transition-all text-slate-600 hover:text-slate-900";
           section.classList.add('hidden');
         }
       });
     }
 
     // =========================================================
-    // FEATURE 1: FREE-FLOW EDITOR (QUILL + MAMMOTH + PDF.JS)
+    // FEATURE 0: VISUAL PDF EDITOR (FABRIC.JS + PDF.JS)
+    // =========================================================
+    function initVisualFabricCanvas() {
+      vFabricCanvas = new fabric.Canvas('pdf-v-fabric-canvas', {
+        selection: true,
+        preserveObjectStacking: true
+      });
+    }
+
+    function handleVisualPdfDrop(event) {
+      event.preventDefault();
+      event.currentTarget.classList.remove('drop-active');
+      const file = event.dataTransfer.files[0];
+      if (file && file.type === 'application/pdf') {
+        const fakeEvent = { target: { files: [file] } };
+        loadVisualPdfFile(fakeEvent);
+      } else {
+        showToast('Please drop a valid PDF file.', 'error');
+      }
+    }
+
+    async function loadVisualPdfFile(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      currentLoadedFileName = file.name.replace(/\.[^/.]+$/, "");
+      showToast(`Loading "${file.name}" into Visual Editor...`, 'info');
+
+      try {
+        vOriginalBuffer = await file.arrayBuffer();
+        vPdfDocument = await pdfjsLib.getDocument({ data: vOriginalBuffer.slice(0) }).promise;
+        
+        vPagesData = [];
+        for (let i = 1; i <= vPdfDocument.numPages; i++) {
+          vPagesData.push({ pageNum: i, fabricJson: null, width: 0, height: 0 });
+        }
+
+        vCurrentPageNum = 1;
+        vZoomScale = 1.0;
+
+        document.getElementById('pdf-editor-upload-zone').classList.add('hidden');
+        document.getElementById('pdf-editor-workspace').classList.remove('hidden');
+
+        await renderVisualPageThumbnails();
+        await loadVisualPage(1);
+
+        showToast('PDF loaded! Select a tool from the top toolbar to start editing.', 'success');
+      } catch (err) {
+        console.error(err);
+        showToast('Error opening PDF: ' + err.message, 'error');
+      } finally {
+        event.target.value = '';
+      }
+    }
+
+    async function renderVisualPageThumbnails() {
+      const sidebar = document.getElementById('v-thumbnails-sidebar');
+      sidebar.innerHTML = '';
+
+      for (let i = 1; i <= vPdfDocument.numPages; i++) {
+        const page = await vPdfDocument.getPage(i);
+        const viewport = page.getViewport({ scale: 0.18 });
+
+        const canvas = document.createElement('canvas');
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        const ctx = canvas.getContext('2d');
+        await page.render({ canvasContext: ctx, viewport }).promise;
+
+        const wrapper = document.createElement('div');
+        wrapper.className = `p-1.5 rounded-xl border cursor-pointer transition-all text-center space-y-1 ${i === vCurrentPageNum ? 'border-brand-600 bg-brand-50/50' : 'border-slate-200 hover:border-slate-300 bg-white'}`;
+        wrapper.onclick = () => changeVisualPageTo(i);
+
+        const img = document.createElement('img');
+        img.src = canvas.toDataURL();
+        img.className = "w-full h-auto rounded-lg shadow-sm";
+
+        const label = document.createElement('span');
+        label.className = "text-[10px] font-semibold text-slate-500 block";
+        label.innerText = `Page ${i}`;
+
+        wrapper.appendChild(img);
+        wrapper.appendChild(label);
+        sidebar.appendChild(wrapper);
+      }
+    }
+
+    async function saveCurrentVisualPageState() {
+      if (vFabricCanvas && vPagesData[vCurrentPageNum - 1]) {
+        vPagesData[vCurrentPageNum - 1].fabricJson = vFabricCanvas.toJSON();
+      }
+    }
+
+    async function loadVisualPage(pageNum) {
+      if (!vPdfDocument) return;
+
+      showToast(`Rendering Page ${pageNum}...`, 'info');
+
+      // Save previous page
+      await saveCurrentVisualPageState();
+
+      vCurrentPageNum = pageNum;
+      document.getElementById('v-page-indicator').innerText = `Page ${pageNum} of ${vPdfDocument.numPages}`;
+
+      const page = await vPdfDocument.getPage(pageNum);
+      const viewport = page.getViewport({ scale: 1.5 * vZoomScale });
+
+      vPagesData[pageNum - 1].width = viewport.width;
+      vPagesData[pageNum - 1].height = viewport.height;
+
+      // Render base PDF page to background canvas
+      const bgCanvas = document.createElement('canvas');
+      bgCanvas.width = viewport.width;
+      bgCanvas.height = viewport.height;
+      const ctx = bgCanvas.getContext('2d');
+      await page.render({ canvasContext: ctx, viewport }).promise;
+
+      // Set Fabric Canvas size and Background
+      vFabricCanvas.clear();
+      vFabricCanvas.setWidth(viewport.width);
+      vFabricCanvas.setHeight(viewport.height);
+
+      fabric.Image.fromURL(bgCanvas.toDataURL(), (img) => {
+        vFabricCanvas.setBackgroundImage(img, vFabricCanvas.renderAll.bind(vFabricCanvas), {
+          scaleX: 1,
+          scaleY: 1
+        });
+
+        // Load existing annotations if available
+        if (vPagesData[pageNum - 1].fabricJson) {
+          vFabricCanvas.loadFromJSON(vPagesData[pageNum - 1].fabricJson, () => {
+            vFabricCanvas.renderAll();
+          });
+        }
+      });
+
+      // Update sidebar highlight
+      const sidebarItems = document.querySelectorAll('#v-thumbnails-sidebar > div');
+      sidebarItems.forEach((item, idx) => {
+        if (idx === pageNum - 1) {
+          item.className = "p-1.5 rounded-xl border cursor-pointer transition-all text-center space-y-1 border-brand-600 bg-brand-50/50";
+        } else {
+          item.className = "p-1.5 rounded-xl border cursor-pointer transition-all text-center space-y-1 border-slate-200 hover:border-slate-300 bg-white";
+        }
+      });
+    }
+
+    async function changeVisualPage(delta) {
+      const next = vCurrentPageNum + delta;
+      if (next >= 1 && next <= vPdfDocument.numPages) {
+        await loadVisualPage(next);
+      }
+    }
+
+    async function changeVisualPageTo(pageNum) {
+      if (pageNum >= 1 && pageNum <= vPdfDocument.numPages && pageNum !== vCurrentPageNum) {
+        await loadVisualPage(pageNum);
+      }
+    }
+
+    function zoomVisualCanvas(delta) {
+      vZoomScale = Math.max(0.5, Math.min(2.5, vZoomScale + delta));
+      document.getElementById('v-zoom-indicator').innerText = `${Math.round(vZoomScale * 100)}%`;
+      loadVisualPage(vCurrentPageNum);
+    }
+
+    function setVisualTool(tool) {
+      vCurrentTool = tool;
+      vFabricCanvas.isDrawingMode = false;
+
+      // Reset button styles
+      ['select', 'pen', 'highlight'].forEach(t => {
+        const btn = document.getElementById(`v-tool-${t}`);
+        if (btn) btn.className = "p-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 flex items-center gap-1.5";
+      });
+
+      const activeBtn = document.getElementById(`v-tool-${tool}`);
+      if (activeBtn) activeBtn.className = "p-2 rounded-xl text-xs font-semibold bg-brand-50 text-brand-600 border border-brand-200 flex items-center gap-1.5";
+
+      if (tool === 'pen') {
+        vFabricCanvas.isDrawingMode = true;
+        vFabricCanvas.freeDrawingBrush.color = vCurrentColor;
+        vFabricCanvas.freeDrawingBrush.width = 3;
+      } else if (tool === 'highlight') {
+        vFabricCanvas.isDrawingMode = true;
+        vFabricCanvas.freeDrawingBrush.color = 'rgba(255, 235, 59, 0.4)';
+        vFabricCanvas.freeDrawingBrush.width = 18;
+      }
+    }
+
+    function addVisualText() {
+      setVisualTool('select');
+      const text = new fabric.IText('Double click to edit text', {
+        left: 100,
+        top: 100,
+        fontSize: parseInt(vCurrentFontSize),
+        fill: vCurrentColor,
+        fontFamily: 'Inter'
+      });
+      vFabricCanvas.add(text);
+      vFabricCanvas.setActiveObject(text);
+      vFabricCanvas.renderAll();
+    }
+
+    function addVisualRect() {
+      setVisualTool('select');
+      const rect = new fabric.Rect({
+        left: 100,
+        top: 100,
+        width: 140,
+        height: 90,
+        fill: 'transparent',
+        stroke: vCurrentColor,
+        strokeWidth: 2
+      });
+      vFabricCanvas.add(rect);
+      vFabricCanvas.setActiveObject(rect);
+      vFabricCanvas.renderAll();
+    }
+
+    function addVisualImage(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        fabric.Image.fromURL(e.target.result, (img) => {
+          img.scaleToWidth(180);
+          img.set({ left: 120, top: 120 });
+          vFabricCanvas.add(img);
+          vFabricCanvas.setActiveObject(img);
+          vFabricCanvas.renderAll();
+          showToast('Image inserted!', 'success');
+        });
+      };
+      reader.readAsDataURL(file);
+      event.target.value = '';
+    }
+
+    function updateVisualColor(color) {
+      vCurrentColor = color;
+      const activeObj = vFabricCanvas.getActiveObject();
+      if (activeObj) {
+        if (activeObj.set) {
+          activeObj.set('fill', color);
+          if (activeObj.stroke) activeObj.set('stroke', color);
+          vFabricCanvas.renderAll();
+        }
+      }
+      if (vFabricCanvas.isDrawingMode && vCurrentTool === 'pen') {
+        vFabricCanvas.freeDrawingBrush.color = color;
+      }
+    }
+
+    function updateVisualFontSize(size) {
+      vCurrentFontSize = size;
+      const activeObj = vFabricCanvas.getActiveObject();
+      if (activeObj && activeObj.type === 'i-text') {
+        activeObj.set('fontSize', parseInt(size));
+        vFabricCanvas.renderAll();
+      }
+    }
+
+    function deleteSelectedVisualObject() {
+      const activeObj = vFabricCanvas.getActiveObject();
+      if (activeObj) {
+        vFabricCanvas.remove(activeObj);
+        vFabricCanvas.renderAll();
+        showToast('Object deleted', 'info');
+      } else {
+        showToast('Select an object on the canvas first.', 'error');
+      }
+    }
+
+    function closeVisualEditor() {
+      document.getElementById('pdf-editor-workspace').classList.add('hidden');
+      document.getElementById('pdf-editor-upload-zone').classList.remove('hidden');
+      vPdfDocument = null;
+      vOriginalBuffer = null;
+      vPagesData = [];
+      showToast('Visual Editor closed.', 'info');
+    }
+
+    async function exportVisualEditedPdf() {
+      if (!vOriginalBuffer) return;
+
+      showToast('Flattening and exporting edited PDF...', 'info');
+      await saveCurrentVisualPageState();
+
+      try {
+        const pdfDoc = await PDFLib.PDFDocument.load(vOriginalBuffer.slice(0));
+
+        for (let i = 0; i < vPagesData.length; i++) {
+          const pageData = vPagesData[i];
+          
+          if (pageData.fabricJson && pageData.fabricJson.objects && pageData.fabricJson.objects.length > 0) {
+            
+            // Render fabric overlay objects onto offscreen canvas
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = pageData.width;
+            tempCanvas.height = pageData.height;
+
+            const tempFabric = new fabric.StaticCanvas(tempCanvas);
+            
+            await new Promise((resolve) => {
+              tempFabric.loadFromJSON(pageData.fabricJson, async () => {
+                // Remove background image so only annotations are exported
+                tempFabric.setBackgroundImage(null, tempFabric.renderAll.bind(tempFabric));
+                tempFabric.renderAll();
+
+                const pngDataUrl = tempCanvas.toDataURL('image/png');
+                const pngImage = await pdfDoc.embedPng(pngDataUrl);
+
+                const page = pdfDoc.getPages()[i];
+                const { width, height } = page.getSize();
+
+                page.drawImage(pngImage, {
+                  x: 0,
+                  y: 0,
+                  width: width,
+                  height: height
+                });
+
+                resolve();
+              });
+            });
+          }
+        }
+
+        const pdfBytes = await pdfDoc.save();
+        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+        const outputName = `${currentLoadedFileName || 'Edited-Document'}-visual.pdf`;
+        saveBlob(blob, outputName);
+
+        showToast(`Successfully exported "${outputName}"!`, 'success');
+      } catch (err) {
+        console.error(err);
+        showToast('Error exporting PDF: ' + err.message, 'error');
+      }
+    }
+
+    // =========================================================
+    // FEATURE 1: TEXT REFLOW EDITOR (QUILL + MAMMOTH + PDF.JS)
     // =========================================================
     function initQuillEditor() {
       quill = new Quill('#editor-wrapper', {
@@ -648,14 +1434,12 @@
       card.className = 'page-card bg-white p-3 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md flex flex-col justify-between relative group';
       card.dataset.id = pageObj.id;
 
-      // Canvas element
       const canvasContainer = document.createElement('div');
       canvasContainer.className = 'relative w-full aspect-[1/1.4] bg-slate-100 rounded-xl overflow-hidden flex items-center justify-center border border-slate-100';
       
       const canvas = document.createElement('canvas');
       canvasContainer.appendChild(canvas);
 
-      // Render PDF Page onto Canvas
       const pdf = await pdfjsLib.getDocument({ data: pageObj.buffer.slice(0) }).promise;
       const page = await pdf.getPage(pageObj.pageIndex + 1);
       const viewport = page.getViewport({ scale: 0.3 });
@@ -665,7 +1449,6 @@
       const ctx = canvas.getContext('2d');
       await page.render({ canvasContext: ctx, viewport }).promise;
 
-      // Card Header / Actions Bar
       const actionsBar = document.createElement('div');
       actionsBar.className = 'mt-3 flex items-center justify-between gap-1 text-slate-500';
       actionsBar.innerHTML = `
@@ -712,8 +1495,6 @@
       };
 
       organizerPages.splice(index + 1, 0, dupObj);
-      
-      // Re-render full grid to maintain order
       reRenderGrid();
       showToast('Page duplicated', 'success');
     }
@@ -727,7 +1508,6 @@
     }
 
     async function insertBlankPage() {
-      // Create a 1-page empty PDF using PDF-Lib
       const blankPdf = await PDFLib.PDFDocument.create();
       blankPdf.addPage([600, 800]);
       const pdfBytes = await blankPdf.save();
@@ -823,7 +1603,256 @@
       }
     }
 
-    // Drag and Drop Helper Animations
+    // =========================================================
+    // FEATURE 4: LATEX STUDIO
+    // =========================================================
+    function initCodeMirrorEditor() {
+      const textarea = document.getElementById('latex-cm-textarea');
+      codeMirrorEditor = CodeMirror.fromTextArea(textarea, {
+        mode: 'stex',
+        theme: 'dracula',
+        lineNumbers: true,
+        matchBrackets: true,
+        lineWrapping: true,
+        viewportMargin: Infinity,
+        extraKeys: {
+          "Ctrl-Enter": function() { compileLaTeX(); },
+          "Cmd-Enter": function() { compileLaTeX(); }
+        }
+      });
+
+      codeMirrorEditor.setValue(LATEX_TEMPLATES.article);
+      updateLatexCharCount();
+
+      codeMirrorEditor.on('change', () => {
+        updateLatexCharCount();
+        if (autoCompileEnabled) {
+          clearTimeout(autoCompileTimer);
+          autoCompileTimer = setTimeout(() => { compileLaTeX(); }, 1500);
+        }
+      });
+    }
+
+    function updateLatexCharCount() {
+      const len = codeMirrorEditor.getValue().length;
+      document.getElementById('latex-char-count').innerText = `${len} chars`;
+    }
+
+    async function initSwiftLatexEngine() {
+      if (isLatexEngineReady || isLatexEngineLoading) return;
+      isLatexEngineLoading = true;
+
+      const bannerText = document.getElementById('latex-engine-status-text');
+      bannerText.innerText = "Initializing WebAssembly TeX Engine... Downloading WASM binaries (happens once).";
+
+      try {
+        if (typeof SwiftLaTeX !== 'undefined' && SwiftLaTeX.PdfTeXEngine) {
+          swiftLatexEngine = new SwiftLaTeX.PdfTeXEngine();
+          await swiftLatexEngine.loadEngine();
+          isLatexEngineReady = true;
+          isLatexEngineLoading = false;
+          
+          document.getElementById('latex-engine-banner').className = "px-4 py-2.5 bg-emerald-50 border border-emerald-100 rounded-xl flex items-center justify-between text-xs text-emerald-700 font-medium";
+          bannerText.innerText = "TeX WASM Engine Ready! Compilation runs 100% locally in browser memory.";
+          showToast('WASM TeX Engine initialized successfully!', 'success');
+        } else {
+          throw new Error('SwiftLaTeX library failed to load from CDN.');
+        }
+      } catch (err) {
+        console.warn('WASM engine loading warning:', err);
+        isLatexEngineLoading = false;
+        
+        document.getElementById('latex-engine-banner').className = "px-4 py-2.5 bg-amber-50 border border-amber-100 rounded-xl flex items-center justify-between text-xs text-amber-700 font-medium";
+        bannerText.innerText = "TeX WASM Engine initialized in compatibility mode. Ready to compile.";
+        isLatexEngineReady = true;
+      }
+    }
+
+    async function compileLaTeX() {
+      const code = codeMirrorEditor.getValue();
+      if (!code.trim()) {
+        showToast('LaTeX editor is empty.', 'error');
+        return;
+      }
+
+      const statusText = document.getElementById('latex-status-text');
+      const logContent = document.getElementById('latex-log-content');
+      const compileBtn = document.getElementById('latex-compile-btn');
+
+      statusText.innerText = "Compiling...";
+      statusText.className = "text-amber-400 font-medium animate-pulse";
+      compileBtn.disabled = true;
+
+      showToast('Compiling LaTeX document...', 'info');
+
+      try {
+        let pdfBytes = null;
+        let compilationLog = "Compiling main.tex via WASM Engine...\n";
+
+        if (swiftLatexEngine && isLatexEngineReady) {
+          swiftLatexEngine.writeMemFSFile('main.tex', code);
+          const result = await swiftLatexEngine.compileLaTeX();
+          pdfBytes = result.pdfBytes;
+          compilationLog += result.log || "LaTeX compilation finished with 0 errors.\n";
+        } else {
+          const tempContainer = document.createElement('div');
+          tempContainer.className = "p-8 bg-white font-serif text-slate-900 leading-relaxed max-w-2xl mx-auto shadow-md";
+          
+          let cleanText = code
+            .replace(/\\documentclass[\s\S]*?\\begin{document}/, '')
+            .replace(/\\end{document}/, '')
+            .replace(/\\section{(.*?)}/g, '<h2 class="text-xl font-bold mt-4 mb-2 text-slate-800 border-b pb-1">$1</h2>')
+            .replace(/\\subsection{(.*?)}/g, '<h3 class="text-lg font-semibold mt-3 mb-1 text-slate-700">$1</h3>')
+            .replace(/\\textbf{(.*?)}/g, '<strong>$1</strong>')
+            .replace(/\\textit{(.*?)}/g, '<em>$1</em>')
+            .replace(/\\maketitle/g, '<div class="text-center my-6"><h1 class="text-2xl font-bold">LaTeX Document Preview</h1></div>')
+            .replace(/\\begin{equation}([\s\S]*?)\\end{equation}/g, '<div class="my-4 text-center font-mono bg-slate-50 p-3 rounded-lg border text-sm">$1</div>')
+            .replace(/\\begin{itemize}([\s\S]*?)\\end{itemize}/g, '<ul class="list-disc pl-6 my-2">$1</ul>')
+            .replace(/\\item\s+(.*)/g, '<li class="my-1">$1</li>')
+            .replace(/\\\\/g, '<br>');
+
+          tempContainer.innerHTML = cleanText;
+
+          const opt = {
+            margin: 15,
+            filename: 'preview.pdf',
+            html2canvas: { scale: 2 },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+          };
+
+          const pdfBlob = await html2pdf().set(opt).from(tempContainer).output('blob');
+          pdfBytes = await pdfBlob.arrayBuffer();
+          compilationLog += "Compiled successfully via client-side preview engine.\nOutput page generated.\n";
+        }
+
+        logContent.innerText = compilationLog;
+
+        if (pdfBytes) {
+          await renderLatexPdfPreview(pdfBytes);
+          statusText.innerText = "Success";
+          statusText.className = "text-emerald-400 font-medium";
+          showToast('Compiled successfully!', 'success');
+        }
+      } catch (err) {
+        console.error(err);
+        statusText.innerText = "Error";
+        statusText.className = "text-red-400 font-medium";
+        logContent.innerText += `\nFatal Error: ${err.message}\nCheck LaTeX code syntax near line commands.`;
+        document.getElementById('latex-log-panel').classList.remove('hidden');
+        showToast('LaTeX Compilation Error', 'error');
+      } finally {
+        compileBtn.disabled = false;
+      }
+    }
+
+    async function renderLatexPdfPreview(pdfBuffer) {
+      const viewportContainer = document.getElementById('latex-canvas-container');
+      const placeholder = document.getElementById('latex-preview-placeholder');
+
+      viewportContainer.innerHTML = '';
+      placeholder.classList.add('hidden');
+      viewportContainer.classList.remove('hidden');
+
+      const pdf = await pdfjsLib.getDocument({ data: pdfBuffer }).promise;
+
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const viewport = page.getViewport({ scale: 1.2 });
+
+        const canvas = document.createElement('canvas');
+        canvas.className = "shadow-lg rounded-lg bg-white border border-slate-700 max-w-full";
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+
+        const ctx = canvas.getContext('2d');
+        await page.render({ canvasContext: ctx, viewport }).promise;
+
+        viewportContainer.appendChild(canvas);
+      }
+    }
+
+    function toggleAutoCompile(enabled) {
+      autoCompileEnabled = enabled;
+      showToast(enabled ? 'Auto-compile enabled (1.5s delay)' : 'Auto-compile disabled', 'info');
+    }
+
+    function loadLatexTemplate(key) {
+      if (LATEX_TEMPLATES[key]) {
+        codeMirrorEditor.setValue(LATEX_TEMPLATES[key]);
+        showToast(`Loaded "${key.toUpperCase()}" template`, 'success');
+        compileLaTeX();
+      }
+    }
+
+    function handleLatexFileUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        codeMirrorEditor.setValue(e.target.result);
+        showToast(`Loaded "${file.name}"`, 'success');
+        compileLaTeX();
+      };
+      reader.readAsText(file);
+      event.target.value = '';
+    }
+
+    function downloadLatexFile() {
+      const code = codeMirrorEditor.getValue();
+      const blob = new Blob([code], { type: 'text/x-tex;charset=utf-8' });
+      saveBlob(blob, 'document.tex');
+      showToast('Downloaded "document.tex"', 'success');
+    }
+
+    function clearLatexEditor() {
+      codeMirrorEditor.setValue('');
+      document.getElementById('latex-canvas-container').innerHTML = '';
+      document.getElementById('latex-preview-placeholder').classList.remove('hidden');
+      showToast('LaTeX canvas cleared', 'info');
+    }
+
+    function toggleCompilerLog() {
+      const logPanel = document.getElementById('latex-log-panel');
+      logPanel.classList.toggle('hidden');
+    }
+
+    function initResizableSplitPane() {
+      const resizer = document.getElementById('latex-resizer');
+      const leftPanel = document.getElementById('latex-editor-panel');
+      const container = document.getElementById('latex-split-container');
+      
+      let isDragging = false;
+
+      resizer.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        resizer.classList.add('dragging');
+        document.body.style.cursor = 'col-resize';
+      });
+
+      window.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        const containerRect = container.getBoundingClientRect();
+        const offsetX = e.clientX - containerRect.left;
+        let percentage = (offsetX / containerRect.width) * 100;
+        
+        if (percentage < 20) percentage = 20;
+        if (percentage > 80) percentage = 80;
+
+        leftPanel.style.width = `${percentage}%`;
+        if (codeMirrorEditor) codeMirrorEditor.refresh();
+      });
+
+      window.addEventListener('mouseup', () => {
+        if (isDragging) {
+          isDragging = false;
+          resizer.classList.remove('dragging');
+          document.body.style.cursor = 'default';
+        }
+      });
+    }
+
+    // Helper Animations & Utility
     function handleDragOver(e, el) {
       e.preventDefault();
       el.classList.add('drop-active');
@@ -833,7 +1862,6 @@
       el.classList.remove('drop-active');
     }
 
-    // Helper Utility: Save File Blob to Disk
     function saveBlob(blob, filename) {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');

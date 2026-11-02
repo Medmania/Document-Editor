@@ -1,7 +1,4 @@
-/**
- * js/visual-pdf-editor.js
- * Visual PDF Editor powered by Fabric.js canvas, PDF.js extraction, and Tesseract.js OCR engine.
- */
+
 
 // Visual PDF Editor State Variables
 let vPdfDocument = null;

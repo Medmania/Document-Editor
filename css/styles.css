@@ -1,0 +1,94 @@
+/* Custom Styles for DocuCraft Studio */
+
+body { 
+  font-family: 'Inter', sans-serif; 
+  background-color: #f8fafc; 
+  color: #0f172a; 
+}
+
+/* Quill Editor Customizations */
+.ql-toolbar.ql-snow {
+  border-top-left-radius: 0.75rem;
+  border-top-right-radius: 0.75rem;
+  border-color: #e2e8f0;
+  background: #f8fafc;
+  padding: 12px;
+}
+.ql-container.ql-snow {
+  border-bottom-left-radius: 0.75rem;
+  border-bottom-right-radius: 0.75rem;
+  border-color: #e2e8f0;
+  font-family: 'Inter', sans-serif;
+  font-size: 1rem;
+  background: #ffffff;
+  min-height: 480px;
+}
+.ql-editor {
+  min-height: 480px;
+  padding: 24px;
+  line-height: 1.6;
+}
+
+/* CodeMirror Custom Styles for LaTeX Studio */
+.CodeMirror {
+  height: 100% !important;
+  font-family: 'Fira Code', monospace;
+  font-size: 13px;
+  border-radius: 0 0 0.75rem 0.75rem;
+  line-height: 1.5;
+}
+
+/* Visual PDF Editor Canvas Styling */
+.canvas-container {
+  margin: 0 auto;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  border-radius: 0.5rem;
+  overflow: hidden;
+  background-color: #ffffff;
+}
+
+/* Page Organizer Cards & Selection Styling */
+.page-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  cursor: grab;
+  user-select: none;
+}
+.page-card:active { 
+  cursor: grabbing; 
+}
+.page-card.selected-card {
+  border-color: #2563eb !important;
+  background-color: #eff6ff !important;
+  box-shadow: 0 0 0 2px #2563eb;
+}
+.sortable-ghost { 
+  opacity: 0.4; 
+  transform: scale(0.95); 
+}
+.sortable-drag { 
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); 
+}
+
+/* Custom Dropzone Highlight */
+.drop-active {
+  border-color: #2563eb !important;
+  background-color: #eff6ff !important;
+}
+
+/* Resizable Divider Handle */
+.resizer-handle {
+  width: 8px;
+  cursor: col-resize;
+  background: #334155;
+  transition: background 0.2s;
+}
+.resizer-handle:hover, 
+.resizer-handle.dragging {
+  background: #2563eb;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #f1f5f9; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }

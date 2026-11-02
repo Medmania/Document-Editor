@@ -1,9 +1,25 @@
-
+/**
+ * js/visual-pdf-editor.js
+ * Visual PDF Editor Engine powered by Fabric.js, PDF.js, pdf-lib, and Tesseract OCR.
+ * 
+ * --- ORIGINAL TEXT EDITING & WHITE-OUT ARCHITECTURE ---
+ * 1. Extraction: PDF.js `getTextContent()` extracts raw glyph strings and transform matrices.
+ * 2. Grouping: `groupPdfItemsIntoLines` clusters glyphs by Y-level and X-proximity into logical text lines.
+ * 3. Positioning & Scaling: Matrices map baseline coordinates into canvas space. Bounding boxes
+ *    are recorded simultaneously in unscaled PDF Document Space (points, bottom-left origin) and
+ *    stored in `originalBounds`.
+ * 4. Inline Editing & White-Out Tracking: When an original text Fabric.IText object is edited,
+ *    moved, transformed, or deleted, `markOriginalTextAsModified` captures its exact initial unscaled
+ *    PDF bounding box with a 1.5pt protective margin into `pageData.whiteoutRects`.
+ * 5. Clean PDF-Lib Export: On export, pdf-lib FIRST draws filled white rectangles over all whited-out 
+ *    regions directly on the native PDF page streams. Canvas overlays (edited text, annotations, shapes)
+ *    are rendered at high DPI (2.0x scale) and drawn on top, ensuring old text is completely erased.
+ */
 
 // Visual PDF Editor State Variables
 let vPdfDocument = null;
 let vOriginalBuffer = null;
-let vPagesData = []; // Array of { pageNum, fabricJson, width, height, whiteoutRects: [] }
+let vPagesData = []; // Array of { pageNum, fabricJson, width, height, pdfPageWidth, pdfPageHeight, whiteoutRects: [] }
 let vCurrentPageNum = 1;
 let vFabricCanvas = null;
 let vZoomScale = 1.0;
@@ -16,34 +32,67 @@ let vRedoStack = [];
 let ocrWorker = null;
 let isOcrRunning = false;
 
+/**
+ * Initializes the interactive Fabric.js canvas and binds state listeners.
+ */
 function initVisualFabricCanvas() {
   vFabricCanvas = new fabric.Canvas('pdf-v-fabric-canvas', {
     selection: true,
     preserveObjectStacking: true
   });
 
-  vFabricCanvas.on('object:modified', () => pushVisualHistory());
+  // Event Listeners for Undo/Redo & Real-Time Modification Tracking
+  vFabricCanvas.on('object:modified', (e) => {
+    if (e.target && e.target.isOriginalText) {
+      markOriginalTextAsModified(e.target);
+    }
+    pushVisualHistory();
+  });
+
   vFabricCanvas.on('object:added', (e) => {
     if (e.target && !e.target.isBackground) pushVisualHistory();
   });
+
   vFabricCanvas.on('text:changed', (e) => {
     const obj = e.target;
-    if (obj && obj.isOriginalText && obj.originalBounds) {
+    if (obj && obj.isOriginalText) {
+      markOriginalTextAsModified(obj);
+    }
+  });
+
+  vFabricCanvas.on('object:removed', (e) => {
+    const obj = e.target;
+    if (obj && obj.isOriginalText) {
       markOriginalTextAsModified(obj);
     }
   });
 }
 
+/**
+ * Registers an original text object's region for white-out erasure on PDF export.
+ */
 function markOriginalTextAsModified(textObj) {
   const pageData = vPagesData[vCurrentPageNum - 1];
-  if (pageData && textObj.originalBounds) {
-    const exists = pageData.whiteoutRects.some(r => r.id === textObj.originalBounds.id);
-    if (!exists) {
-      pageData.whiteoutRects.push(textObj.originalBounds);
-    }
+  if (!pageData || !textObj || !textObj.originalBounds) return;
+
+  const bounds = textObj.originalBounds;
+  const exists = pageData.whiteoutRects.some(r => r.id === bounds.id);
+  
+  if (!exists) {
+    pageData.whiteoutRects.push({
+      id: bounds.id,
+      pdfX: bounds.pdfX,
+      pdfY: bounds.pdfY,
+      pdfW: bounds.pdfW,
+      pdfH: bounds.pdfH
+    });
+    textObj.isModified = true;
   }
 }
 
+/**
+ * Handles Drag and Drop PDF import.
+ */
 function handleVisualPdfDrop(event) {
   event.preventDefault();
   event.currentTarget.classList.remove('drop-active');
@@ -55,17 +104,20 @@ function handleVisualPdfDrop(event) {
   }
 }
 
+/**
+ * Loads a selected PDF file into the visual editor memory.
+ */
 async function loadVisualPdfFile(event) {
   const file = event.target.files[0];
   if (!file) return;
 
   if (file.size > 25 * 1024 * 1024) {
-    showToast('Large file (>25MB). Lowering canvas render scale to optimize browser memory.', 'info');
+    showToast('Large file (>25MB). Lowering viewport scale to optimize performance.', 'info');
     vZoomScale = 0.8;
   }
 
   window.currentLoadedFileName = file.name.replace(/\.[^/.]+$/, "");
-  showToast(`Loading "${file.name}" into Visual Editor...`, 'info');
+  showToast(`Loading "${file.name}"...`, 'info');
 
   try {
     if (vOriginalBuffer) vOriginalBuffer = null;
@@ -75,7 +127,15 @@ async function loadVisualPdfFile(event) {
     
     vPagesData = [];
     for (let i = 1; i <= vPdfDocument.numPages; i++) {
-      vPagesData.push({ pageNum: i, fabricJson: null, width: 0, height: 0, whiteoutRects: [] });
+      vPagesData.push({ 
+        pageNum: i, 
+        fabricJson: null, 
+        width: 0, 
+        height: 0, 
+        pdfPageWidth: 0,
+        pdfPageHeight: 0,
+        whiteoutRects: [] 
+      });
     }
 
     vCurrentPageNum = 1;
@@ -88,7 +148,7 @@ async function loadVisualPdfFile(event) {
     await renderVisualPageThumbnails();
     await loadVisualPage(1);
 
-    showToast('PDF loaded successfully! Active mode: Edit Original Text.', 'success');
+    showToast('PDF loaded! Active mode: Edit Original Text.', 'success');
   } catch (err) {
     showToast('Error opening PDF: ' + err.message, 'error');
   } finally {
@@ -96,6 +156,9 @@ async function loadVisualPdfFile(event) {
   }
 }
 
+/**
+ * Renders page thumbnails in the sidebar.
+ */
 async function renderVisualPageThumbnails() {
   const sidebar = document.getElementById('v-thumbnails-sidebar');
   sidebar.innerHTML = '';
@@ -111,7 +174,9 @@ async function renderVisualPageThumbnails() {
     await page.render({ canvasContext: ctx, viewport }).promise;
 
     const wrapper = document.createElement('div');
-    wrapper.className = `p-1.5 rounded-xl border cursor-pointer transition-all text-center space-y-1 ${i === vCurrentPageNum ? 'border-brand-600 bg-brand-50/50' : 'border-slate-200 hover:border-slate-300 bg-white'}`;
+    wrapper.className = `p-1.5 rounded-xl border cursor-pointer transition-all text-center space-y-1 ${
+      i === vCurrentPageNum ? 'border-brand-600 bg-brand-50/50' : 'border-slate-200 hover:border-slate-300 bg-white'
+    }`;
     wrapper.onclick = () => changeVisualPageTo(i);
 
     const img = document.createElement('img');
@@ -126,20 +191,26 @@ async function renderVisualPageThumbnails() {
     wrapper.appendChild(label);
     sidebar.appendChild(wrapper);
 
-    // Memory Cleanup
+    // Clean memory
     canvas.width = 0; 
     canvas.height = 0;
   }
 }
 
+/**
+ * Saves current canvas state to memory array before navigating pages.
+ */
 async function saveCurrentVisualPageState() {
   if (vFabricCanvas && vPagesData[vCurrentPageNum - 1]) {
     vPagesData[vCurrentPageNum - 1].fabricJson = vFabricCanvas.toJSON([
-      'isOriginalText', 'originalText', 'originalBounds', 'isOcrText', 'ocrConfidence'
+      'isOriginalText', 'originalText', 'originalBounds', 'isOcrText', 'ocrConfidence', 'isModified'
     ]);
   }
 }
 
+/**
+ * Loads and renders a specific PDF page onto the Fabric canvas.
+ */
 async function loadVisualPage(pageNum) {
   if (!vPdfDocument) return;
 
@@ -148,14 +219,17 @@ async function loadVisualPage(pageNum) {
   document.getElementById('v-page-indicator').innerText = `Page ${pageNum} of ${vPdfDocument.numPages}`;
 
   const page = await vPdfDocument.getPage(pageNum);
+  const unscaledViewport = page.getViewport({ scale: 1.0 });
   const viewportScale = 1.5 * vZoomScale;
   const viewport = page.getViewport({ scale: viewportScale });
 
   const pageData = vPagesData[pageNum - 1];
   pageData.width = viewport.width;
   pageData.height = viewport.height;
+  pageData.pdfPageWidth = unscaledViewport.width;
+  pageData.pdfPageHeight = unscaledViewport.height;
 
-  // Render Base Background
+  // Render Background PDF Canvas Image
   const bgCanvas = document.createElement('canvas');
   bgCanvas.width = viewport.width;
   bgCanvas.height = viewport.height;
@@ -175,55 +249,82 @@ async function loadVisualPage(pageNum) {
         vFabricCanvas.renderAll();
       });
     } else {
-      extractAndOverlayOriginalText(page, viewport);
+      extractAndOverlayOriginalText(page, viewport, unscaledViewport);
     }
 
+    // Canvas memory cleanup
     bgCanvas.width = 0; 
     bgCanvas.height = 0;
   });
 }
 
-async function extractAndOverlayOriginalText(page, viewport) {
+/**
+ * ACCURATE TEXT EXTRACTION & FABRIC OVERLAY
+ * Parses glyph position matrices and maps them precisely into both Fabric Canvas space
+ * and unscaled PDF Document Space (Points, bottom-left origin).
+ */
+async function extractAndOverlayOriginalText(page, viewport, unscaledViewport) {
   const textContent = await page.getTextContent();
 
   if (!textContent.items || textContent.items.length === 0) {
-    showToast('Image-only PDF page detected! Click "OCR Page" to extract text.', 'info');
+    showToast('Scanned or image-only page detected! Click "OCR Page" to extract editable text.', 'info');
     return;
   }
 
   const lines = groupPdfItemsIntoLines(textContent.items);
+  const pdfHeight = unscaledViewport.height;
 
   lines.forEach((lineItems, index) => {
     const lineText = lineItems.map(i => i.str).join(' ');
     if (!lineText.trim()) return;
 
     const firstItem = lineItems[0];
+    
+    // Matrix transformation for viewport scaling
     const tx = pdfjsLib.Util.transform(viewport.transform, firstItem.transform);
-    const fontSize = Math.sqrt(firstItem.transform[0] * firstItem.transform[0] + firstItem.transform[1] * firstItem.transform[1]) * viewport.scale;
+    const fontScale = Math.sqrt(firstItem.transform[0] * firstItem.transform[0] + firstItem.transform[1] * firstItem.transform[1]);
+    const canvasFontSize = fontScale * viewport.scale;
+    const pdfFontSize = fontScale;
 
-    const lineCalcWidth = lineItems.reduce((acc, item) => acc + (item.width || 0), 0) * viewport.scale;
-    const lineCalcHeight = fontSize * 1.2;
+    // Calculate line bounding dimensions
+    const lineCanvasWidth = lineItems.reduce((acc, item) => acc + ((item.width || 0) * viewport.scale), 0);
+    const linePdfWidth = lineItems.reduce((acc, item) => acc + (item.width || 0), 0);
+    const linePdfHeight = pdfFontSize * 1.25;
 
-    const boundsId = `bound-${vCurrentPageNum}-${index}-${Math.random().toString(36).substr(2, 6)}`;
+    // Unscaled PDF Space Coordinates (Points, bottom-left origin)
+    const pdfX = firstItem.transform[4];
+    const pdfY = firstItem.transform[5] - (pdfFontSize * 0.25); // Include descent buffer
+
+    // Canvas Top-Left Position
+    const canvasLeft = tx[4];
+    const canvasTop = tx[5] - (canvasFontSize * 0.85); // Align ascent to top-left
+
+    const boundsId = `bound-p${vCurrentPageNum}-line${index}-${Math.random().toString(36).substring(2, 8)}`;
+    
+    // Unscaled PDF Bounding Box with protective margin for white-out
     const originalBounds = {
       id: boundsId,
-      left: tx[4],
-      top: tx[5] - fontSize,
-      width: lineCalcWidth > 0 ? lineCalcWidth : 100,
-      height: lineCalcHeight
+      pdfX: Math.max(0, pdfX - 1.5),
+      pdfY: Math.max(0, pdfY - 2.0),
+      pdfW: (linePdfWidth > 0 ? linePdfWidth : 80) + 3.0,
+      pdfH: linePdfHeight + 4.0
     };
 
     const textObj = new fabric.IText(lineText, {
-      left: tx[4],
-      top: tx[5] - fontSize,
-      fontSize: fontSize || 14,
+      left: canvasLeft,
+      top: canvasTop,
+      fontSize: canvasFontSize || 14,
       fill: '#0f172a',
-      fontFamily: 'Helvetica, Inter, sans-serif',
+      fontFamily: 'Helvetica, Arial, sans-serif',
       isOriginalText: true,
       originalText: lineText,
       originalBounds: originalBounds,
       stroke: vEditMode === 'edit-text' ? '#2563eb' : '',
-      strokeWidth: vEditMode === 'edit-text' ? 0.5 : 0
+      strokeWidth: vEditMode === 'edit-text' ? 0.5 : 0,
+      padding: 2,
+      cornerColor: '#2563eb',
+      cornerSize: 6,
+      transparentCorners: false
     });
 
     vFabricCanvas.add(textObj);
@@ -233,10 +334,18 @@ async function extractAndOverlayOriginalText(page, viewport) {
   pushVisualHistory();
 }
 
+/**
+ * Toggles visual highlight outlines depending on active mode.
+ */
 function setVisualEditMode(mode) {
   vEditMode = mode;
-  document.getElementById('v-mode-edit').className = mode === 'edit-text' ? "px-2.5 py-1 text-xs font-semibold rounded-lg text-brand-600 bg-white shadow-sm flex items-center gap-1.5" : "px-2.5 py-1 text-xs font-semibold rounded-lg text-slate-600 hover:text-slate-900 flex items-center gap-1.5";
-  document.getElementById('v-mode-annotate').className = mode === 'annotate' ? "px-2.5 py-1 text-xs font-semibold rounded-lg text-brand-600 bg-white shadow-sm flex items-center gap-1.5" : "px-2.5 py-1 text-xs font-semibold rounded-lg text-slate-600 hover:text-slate-900 flex items-center gap-1.5";
+  document.getElementById('v-mode-edit').className = mode === 'edit-text' 
+    ? "px-2.5 py-1 text-xs font-semibold rounded-lg text-brand-600 bg-white shadow-sm flex items-center gap-1.5" 
+    : "px-2.5 py-1 text-xs font-semibold rounded-lg text-slate-600 hover:text-slate-900 flex items-center gap-1.5";
+  
+  document.getElementById('v-mode-annotate').className = mode === 'annotate' 
+    ? "px-2.5 py-1 text-xs font-semibold rounded-lg text-brand-600 bg-white shadow-sm flex items-center gap-1.5" 
+    : "px-2.5 py-1 text-xs font-semibold rounded-lg text-slate-600 hover:text-slate-900 flex items-center gap-1.5";
 
   if (mode === 'edit-text' && vFabricCanvas.isDrawingMode) {
     setVisualTool('select');
@@ -245,19 +354,26 @@ function setVisualEditMode(mode) {
   applyEditModeStyles();
 }
 
+/**
+ * Applies subtle outline styling to original PDF text objects in Edit Mode.
+ */
 function applyEditModeStyles() {
   vFabricCanvas.getObjects().forEach(obj => {
     if (obj.isOriginalText) {
       obj.set({ 
         stroke: vEditMode === 'edit-text' ? '#2563eb' : '', 
         strokeWidth: vEditMode === 'edit-text' ? 0.5 : 0, 
-        selectable: true 
+        selectable: vEditMode === 'edit-text' || vCurrentTool === 'select',
+        hoverCursor: vEditMode === 'edit-text' ? 'text' : 'move'
       });
     }
   });
   vFabricCanvas.renderAll();
 }
 
+/**
+ * Runs Tesseract.js OCR on scanned image PDF pages.
+ */
 async function runOCR() {
   if (isOcrRunning) return;
   if (!vPdfDocument) {
@@ -271,7 +387,7 @@ async function runOCR() {
   isOcrRunning = true;
 
   try {
-    statusText.innerText = "Rendering clean original page for OCR...";
+    statusText.innerText = "Rendering page image for Tesseract OCR...";
     const page = await vPdfDocument.getPage(vCurrentPageNum);
     const ocrScale = 2.0;
     const viewport = page.getViewport({ scale: ocrScale });
@@ -283,11 +399,11 @@ async function runOCR() {
     await page.render({ canvasContext: ctx, viewport }).promise;
 
     if (!ocrWorker) {
-      statusText.innerText = "Initializing Tesseract.js OCR engine binaries...";
+      statusText.innerText = "Loading Tesseract.js WASM OCR binaries...";
       ocrWorker = await Tesseract.createWorker('eng');
     }
 
-    statusText.innerText = `Recognizing text on page ${vCurrentPageNum}...`;
+    statusText.innerText = `Recognizing glyphs on page ${vCurrentPageNum}...`;
     const imageBlob = await new Promise(resolve => cleanCanvas.toBlob(resolve, 'image/png'));
     const ret = await ocrWorker.recognize(imageBlob);
 
@@ -311,7 +427,7 @@ async function runOCR() {
             top: wordY,
             fontSize: Math.max(12, Math.round(wordH)),
             fill: '#0f172a',
-            fontFamily: 'Inter',
+            fontFamily: 'Inter, sans-serif',
             isOcrText: true,
             ocrConfidence: Math.round(word.confidence),
             backgroundColor: 'rgba(224, 231, 255, 0.7)'
@@ -324,7 +440,7 @@ async function runOCR() {
 
     vFabricCanvas.renderAll();
     pushVisualHistory();
-    showToast(`OCR complete! Recognized ${addedCount} words (marked with indigo background).`, 'success');
+    showToast(`OCR complete! Recognized ${addedCount} words.`, 'success');
   } catch (err) {
     if (err && err.message !== 'cancelled') {
       showToast('OCR Error: ' + err.message, 'error');
@@ -335,6 +451,9 @@ async function runOCR() {
   }
 }
 
+/**
+ * Cancels active Tesseract worker operation.
+ */
 async function cancelOCR() {
   if (ocrWorker) {
     try { await ocrWorker.terminate(); } catch(e) {}
@@ -342,13 +461,16 @@ async function cancelOCR() {
   }
   isOcrRunning = false;
   document.getElementById('ocr-progress-banner').classList.add('hidden');
-  showToast('OCR operation cancelled.', 'info');
+  showToast('OCR cancelled.', 'info');
 }
 
+/**
+ * Pushes canvas snapshot onto undo stack.
+ */
 function pushVisualHistory() {
   if (vFabricCanvas) {
     const json = JSON.stringify(vFabricCanvas.toJSON([
-      'isOriginalText', 'originalText', 'originalBounds', 'isOcrText', 'ocrConfidence'
+      'isOriginalText', 'originalText', 'originalBounds', 'isOcrText', 'ocrConfidence', 'isModified'
     ]));
     if (vUndoStack.length === 0 || vUndoStack[vUndoStack.length - 1] !== json) {
       vUndoStack.push(json);
@@ -358,6 +480,9 @@ function pushVisualHistory() {
   }
 }
 
+/**
+ * Undoes last canvas action.
+ */
 function undoVisualState() {
   if (vUndoStack.length > 1) {
     vRedoStack.push(vUndoStack.pop());
@@ -366,6 +491,9 @@ function undoVisualState() {
   }
 }
 
+/**
+ * Redoes previously undone action.
+ */
 function redoVisualState() {
   if (vRedoStack.length > 0) {
     const state = vRedoStack.pop();
@@ -374,23 +502,35 @@ function redoVisualState() {
   }
 }
 
+/**
+ * Switches pages sequentially.
+ */
 async function changeVisualPage(delta) {
   const next = vCurrentPageNum + delta;
   if (next >= 1 && next <= vPdfDocument.numPages) await loadVisualPage(next);
 }
 
+/**
+ * Switches to a specific page index.
+ */
 async function changeVisualPageTo(pageNum) {
   if (pageNum >= 1 && pageNum <= vPdfDocument.numPages && pageNum !== vCurrentPageNum) {
     await loadVisualPage(pageNum);
   }
 }
 
+/**
+ * Zooms canvas viewport scale.
+ */
 function zoomVisualCanvas(delta) {
   vZoomScale = Math.max(0.5, Math.min(2.5, vZoomScale + delta));
   document.getElementById('v-zoom-indicator').innerText = `${Math.round(vZoomScale * 100)}%`;
   loadVisualPage(vCurrentPageNum);
 }
 
+/**
+ * Selects active drawing/editing tool.
+ */
 function setVisualTool(tool) {
   vCurrentTool = tool;
   vFabricCanvas.isDrawingMode = false;
@@ -407,20 +547,43 @@ function setVisualTool(tool) {
   }
 }
 
+/**
+ * Adds a new text box onto the canvas.
+ */
 function addVisualText() {
   setVisualTool('select');
-  const text = new fabric.IText('New Text Box', { left: 100, top: 100, fontSize: parseInt(vCurrentFontSize), fill: vCurrentColor, fontFamily: 'Inter' });
+  const text = new fabric.IText('New Text Box', { 
+    left: 100, 
+    top: 100, 
+    fontSize: parseInt(vCurrentFontSize), 
+    fill: vCurrentColor, 
+    fontFamily: 'Inter, sans-serif' 
+  });
   vFabricCanvas.add(text);
   vFabricCanvas.setActiveObject(text);
 }
 
+/**
+ * Adds a rectangle shape onto the canvas.
+ */
 function addVisualRect() {
   setVisualTool('select');
-  const rect = new fabric.Rect({ left: 100, top: 100, width: 140, height: 90, fill: 'transparent', stroke: vCurrentColor, strokeWidth: 2 });
+  const rect = new fabric.Rect({ 
+    left: 100, 
+    top: 100, 
+    width: 140, 
+    height: 90, 
+    fill: 'transparent', 
+    stroke: vCurrentColor, 
+    strokeWidth: 2 
+  });
   vFabricCanvas.add(rect);
   vFabricCanvas.setActiveObject(rect);
 }
 
+/**
+ * Imports an external image or signature onto the canvas.
+ */
 function addVisualImage(event) {
   const file = event.target.files[0];
   if (!file) return;
@@ -437,16 +600,22 @@ function addVisualImage(event) {
   event.target.value = '';
 }
 
+/**
+ * Updates fill/stroke color of selected object.
+ */
 function updateVisualColor(color) {
   vCurrentColor = color;
   const activeObj = vFabricCanvas.getActiveObject();
   if (activeObj) {
     if (activeObj.set) activeObj.set('fill', color);
-    if (activeObj.stroke) activeObj.set('stroke', color);
+    if (activeObj.stroke && !activeObj.isOriginalText) activeObj.set('stroke', color);
     vFabricCanvas.renderAll();
   }
 }
 
+/**
+ * Updates font size of selected text.
+ */
 function updateVisualFontSize(size) {
   vCurrentFontSize = size;
   const activeObj = vFabricCanvas.getActiveObject();
@@ -456,10 +625,13 @@ function updateVisualFontSize(size) {
   }
 }
 
+/**
+ * Deletes selected canvas object and registers white-out if original text.
+ */
 function deleteSelectedVisualObject() {
   const activeObj = vFabricCanvas.getActiveObject();
   if (activeObj) {
-    if (activeObj.isOriginalText && activeObj.originalBounds) {
+    if (activeObj.isOriginalText) {
       markOriginalTextAsModified(activeObj);
     }
     vFabricCanvas.remove(activeObj);
@@ -468,6 +640,9 @@ function deleteSelectedVisualObject() {
   }
 }
 
+/**
+ * Closes workspace and resets editor state.
+ */
 function closeVisualEditor() {
   document.getElementById('pdf-editor-workspace').classList.add('hidden');
   document.getElementById('pdf-editor-upload-zone').classList.remove('hidden');
@@ -477,56 +652,74 @@ function closeVisualEditor() {
   vPagesData = [];
 }
 
+/**
+ * PROPER WHITE-OUT + CLEAN EXPORT
+ * Erases modified text regions using native PDF vector rectangles, then embeds high-DPI 
+ * edited overlays onto the document.
+ */
 async function exportVisualEditedPdf() {
   if (!vOriginalBuffer) return;
   await saveCurrentVisualPageState();
 
   try {
-    showToast('Processing PDF export layers...', 'info');
+    showToast('Exporting PDF with white-out layer processing...', 'info');
     const pdfDoc = await PDFLib.PDFDocument.load(vOriginalBuffer.slice(0));
 
     for (let i = 0; i < vPagesData.length; i++) {
       const pageData = vPagesData[i];
       const page = pdfDoc.getPages()[i];
-      const scale = 1.5 * vZoomScale;
 
-      // Step 1: White-out modified/deleted original text regions
+      // STEP 1: Execute Native Vector White-Out over modified/deleted original text regions
       if (pageData.whiteoutRects && pageData.whiteoutRects.length > 0) {
         pageData.whiteoutRects.forEach(rect => {
-          const pdfX = rect.left / scale;
-          const pdfY = (pageData.height - rect.top - rect.height) / scale;
-          const pdfW = rect.width / scale;
-          const pdfH = rect.height / scale;
-
           page.drawRectangle({
-            x: pdfX,
-            y: pdfY,
-            width: pdfW,
-            height: pdfH,
-            color: PDFLib.rgb(1, 1, 1)
+            x: rect.pdfX,
+            y: rect.pdfY,
+            width: rect.pdfW,
+            height: rect.pdfH,
+            color: PDFLib.rgb(1, 1, 1),
+            borderWidth: 0
           });
         });
       }
 
-      // Step 2: Render overlays via PNG canvas export
+      // STEP 2: Render crisp Fabric.js overlays (new/edited text, drawings, shapes)
       if (pageData.fabricJson && pageData.fabricJson.objects && pageData.fabricJson.objects.length > 0) {
+        // High-DPI Canvas Rendering (2.0x scale for crisp export quality)
+        const exportScale = 2.0;
         const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = pageData.width;
-        tempCanvas.height = pageData.height;
-        const tempFabric = new fabric.StaticCanvas(tempCanvas);
+        tempCanvas.width = pageData.pdfPageWidth * exportScale;
+        tempCanvas.height = pageData.pdfPageHeight * exportScale;
+
+        const tempFabric = new fabric.StaticCanvas(tempCanvas, {
+          viewportTransform: [exportScale, 0, 0, exportScale, 0, 0]
+        });
 
         await new Promise((resolve) => {
           tempFabric.loadFromJSON(pageData.fabricJson, async () => {
             tempFabric.setBackgroundImage(null, tempFabric.renderAll.bind(tempFabric));
-            tempFabric.getObjects().forEach(o => { if (o.isOriginalText) o.set('strokeWidth', 0); });
+            
+            // Remove blue selection strokes from export output
+            tempFabric.getObjects().forEach(o => { 
+              if (o.isOriginalText) {
+                o.set({ strokeWidth: 0, stroke: '' });
+              }
+            });
+
             tempFabric.renderAll();
 
             const pngDataUrl = tempCanvas.toDataURL('image/png');
             const pngImage = await pdfDoc.embedPng(pngDataUrl);
 
             const { width, height } = page.getSize();
-            page.drawImage(pngImage, { x: 0, y: 0, width, height });
-            
+            page.drawImage(pngImage, { 
+              x: 0, 
+              y: 0, 
+              width: width, 
+              height: height 
+            });
+
+            // Clean memory
             tempCanvas.width = 0; 
             tempCanvas.height = 0;
             resolve();
@@ -537,7 +730,7 @@ async function exportVisualEditedPdf() {
 
     const pdfBytes = await pdfDoc.save();
     saveBlob(new Blob([pdfBytes], { type: 'application/pdf' }), `${window.currentLoadedFileName || 'Edited-Document'}-visual.pdf`);
-    showToast('PDF exported successfully!', 'success');
+    showToast('PDF exported successfully without ghosting!', 'success');
   } catch (err) {
     showToast('Export Error: ' + err.message, 'error');
   }

@@ -1,7 +1,4 @@
-/**
- * js/utils.js
- * Shared utility functions, IndexedDB helpers, notifications, and PDF item grouping.
- */
+
 
 // IndexedDB Global Instance
 let dbInstance = null;
